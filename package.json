@@ -17,6 +17,7 @@
     "db:types": "pnpm --filter @pullquest/database supabase:gen-types"
   },
   "devDependencies": {
+    "tsx": "^4.23.0",
     "turbo": "^2"
   }
 }

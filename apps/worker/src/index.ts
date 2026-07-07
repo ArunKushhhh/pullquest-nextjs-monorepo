@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { initSentry } from './config/sentry.js';
 
 // Initialize Sentry before other imports

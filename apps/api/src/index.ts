@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { initSentry, Sentry } from './config/sentry.js';
 
 // Initialize Sentry first before loading any controllers/routes
