@@ -1,0 +1,29 @@
+{
+  "name": "@pullquest/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@pullquest/shared": "workspace:*",
+    "@pullquest/database": "workspace:*",
+    "@sentry/node": "^9",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "prom-client": "^15.1.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.12.7",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5"
+  }
+}

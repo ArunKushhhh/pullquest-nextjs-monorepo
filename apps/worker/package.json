@@ -1,0 +1,22 @@
+{
+  "name": "@pullquest/worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@pullquest/shared": "workspace:*",
+    "@pullquest/database": "workspace:*",
+    "bullmq": "^5.8.3",
+    "ioredis": "^5.4.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5"
+  }
+}
