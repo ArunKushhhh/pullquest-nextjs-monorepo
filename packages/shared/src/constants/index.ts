@@ -1,5 +1,8 @@
 import { Difficulty, TierName } from '../enums/index.js';
 
+export const APP_NAME = 'PullQuest';
+
+
 // ─── Tier Thresholds ───────────────────────────────────────────────
 /**
  * XP range per tier. `min` is inclusive, `max` is exclusive (except OPEN_SOURCE_LEGEND).

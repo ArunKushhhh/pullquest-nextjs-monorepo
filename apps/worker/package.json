@@ -12,7 +12,10 @@
     "@pullquest/database": "workspace:*",
     "bullmq": "^5.8.3",
     "ioredis": "^5.4.1",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "@sentry/node": "^9.0.0",
+    "@supabase/supabase-js": "^2.43.4",
+    "prom-client": "^15.1.2"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
