@@ -141,6 +141,8 @@ CREATE TABLE pull_requests (
   url TEXT NOT NULL,
   outcome TEXT CHECK (outcome IN ('UNREVIEWED', 'MERGED', 'REJECTED', 'MULTIPLE_ACCEPTED', 'CLOSED_WITHOUT_MERGE')),
   status TEXT NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'AWAITING_EVALUATION', 'RESOLVED')),
+  ai_summary TEXT,
+  last_review_status TEXT,
   merged_at TIMESTAMPTZ,
   closed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

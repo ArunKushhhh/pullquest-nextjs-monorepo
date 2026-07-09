@@ -26,6 +26,7 @@ import orgsRoutes from './routes/orgs.routes.js';
 import installationsRoutes from './routes/installations.routes.js';
 import actsRoutes from './routes/acts.routes.js';
 import metricsRoutes from './routes/metrics.routes.js';
+import usersRoutes from './routes/users.routes.js';
 
 // Webhooks
 import githubWebhook from './webhooks/github.webhook.js';
@@ -43,11 +44,16 @@ app.use(rateLimiter);
 // Observe Prometheus HTTP metrics
 app.use(metricsMiddleware);
 
-// GitHub Webhook requires raw body parsing for HMAC signature validation
+// Webhooks require raw body parsing for signature validation
 app.use(
   '/api/webhooks/github',
   express.raw({ type: 'application/json' }),
   githubWebhook
+);
+app.use(
+  '/api/webhooks/stripe',
+  express.raw({ type: 'application/json' }),
+  stripeWebhook
 );
 
 // Standard JSON parser for other endpoints
@@ -65,7 +71,7 @@ app.use('/api/orgs', orgsRoutes);
 app.use('/api/installations', installationsRoutes);
 app.use('/api/acts', actsRoutes);
 app.use('/api/metrics', metricsRoutes);
-app.use('/api/webhooks/stripe', stripeWebhook);
+app.use('/api/users', usersRoutes);
 
 // Sentry Error Handler (must be registered before any other error middlewares)
 if (config.SENTRY_DSN) {

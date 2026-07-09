@@ -130,6 +130,8 @@ export interface PullRequest {
   url: string;
   outcome: PROutcome | null;
   status: PRStatus;
+  ai_summary: string | null;
+  last_review_status: string | null;
   merged_at: string | null;
   closed_at: string | null;
   created_at: string;
