@@ -10,6 +10,8 @@ declare global {
         id: string;
         github_id?: number;
         github_username?: string;
+        email?: string | null;
+        avatar_url?: string | null;
         role: string;
       };
     }
@@ -33,8 +35,6 @@ export function authMiddleware(
 
   const token = authHeader.split(' ')[1];
   try {
-    // In production, the JWT is verified against the Supabase JWT secret.
-    // For local testing/dev, if secret is not set, we can fall back to decoding.
     const secret = process.env.SUPABASE_JWT_SECRET || config.SUPABASE_SERVICE_ROLE_KEY;
     let decoded: any;
     try {
@@ -52,10 +52,15 @@ export function authMiddleware(
       return;
     }
 
+    const rawGithubId = decoded.user_metadata?.provider_id || decoded.user_metadata?.sub || decoded.github_id;
+    const githubId = rawGithubId ? parseInt(rawGithubId, 10) : undefined;
+
     req.user = {
       id: decoded.sub,
-      github_id: decoded.user_metadata?.github_id || decoded.github_id,
+      github_id: githubId,
       github_username: decoded.user_metadata?.user_name || decoded.github_username,
+      email: decoded.user_metadata?.email || null,
+      avatar_url: decoded.user_metadata?.avatar_url || null,
       role: decoded.user_metadata?.role || decoded.role || 'CONTRIBUTOR',
     };
 
@@ -91,10 +96,15 @@ export function optionalAuth(
     }
 
     if (decoded && typeof decoded === 'object' && decoded.sub) {
+      const rawGithubId = decoded.user_metadata?.provider_id || decoded.user_metadata?.sub || decoded.github_id;
+      const githubId = rawGithubId ? parseInt(rawGithubId, 10) : undefined;
+
       req.user = {
         id: decoded.sub,
-        github_id: decoded.user_metadata?.github_id || decoded.github_id,
+        github_id: githubId,
         github_username: decoded.user_metadata?.user_name || decoded.github_username,
+        email: decoded.user_metadata?.email || null,
+        avatar_url: decoded.user_metadata?.avatar_url || null,
         role: decoded.user_metadata?.role || decoded.role || 'CONTRIBUTOR',
       };
     }

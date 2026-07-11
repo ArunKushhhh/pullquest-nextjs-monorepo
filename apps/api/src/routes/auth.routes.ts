@@ -20,7 +20,7 @@ router.get('/me', authMiddleware, async (req, res, next) => {
 
 router.post('/callback', authMiddleware, async (req, res, next) => {
   try {
-    const { github_id, github_username } = req.user!;
+    const { id: userId, github_id, github_username, email, avatar_url } = req.user!;
     if (!github_id || !github_username) {
       res.status(400).json({
         error: 'BadRequest',
@@ -30,10 +30,11 @@ router.post('/callback', authMiddleware, async (req, res, next) => {
     }
 
     const user = await getOrCreateUser(
+      userId,
       github_id,
       github_username,
-      null, // Email (can enrich later)
-      null  // Avatar URL (can enrich later)
+      email || null,
+      avatar_url || null
     );
 
     res.json(user);

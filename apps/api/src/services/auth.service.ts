@@ -33,19 +33,24 @@ export async function getUserByGithubId(githubId: number): Promise<User | null> 
 }
 
 export async function getOrCreateUser(
+  userId: string,
   githubId: number,
   githubUsername: string,
   email: string | null,
   avatarUrl: string | null
 ): Promise<User> {
-  // Check if exists
-  const existing = await getUserByGithubId(githubId);
+  // Check if exists by primary key first
+  const existing = await getUserById(userId);
   if (existing) {
-    // Update last login
     const { data: updated, error } = await supabase
       .from('users')
-      .update({ last_login_at: new Date().toISOString(), github_username: githubUsername, email, avatar_url: avatarUrl })
-      .eq('id', existing.id)
+      .update({
+        last_login_at: new Date().toISOString(),
+        github_username: githubUsername,
+        email,
+        avatar_url: avatarUrl,
+      })
+      .eq('id', userId)
       .select('*')
       .single();
 
@@ -53,10 +58,11 @@ export async function getOrCreateUser(
     return updated as User;
   }
 
-  // Create new user (initiator tier, 0 XP, 0 coins start)
+  // Create new user (matching Supabase Auth ID)
   const { data: newUser, error } = await supabase
     .from('users')
     .insert({
+      id: userId, // CRITICAL: Map primary key to Supabase Auth ID
       github_id: githubId,
       github_username: githubUsername,
       email,
