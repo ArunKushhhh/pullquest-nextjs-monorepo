@@ -3,6 +3,8 @@ node_modules/
 jspm_packages/
 .pnp
 .pnp.js
+.cursor/
+.mcp.json
 
 # Build and output directories
 dist/
@@ -34,3 +36,4 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+.claude/settings.local.json
