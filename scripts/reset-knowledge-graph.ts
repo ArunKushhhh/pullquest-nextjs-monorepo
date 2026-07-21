@@ -13,8 +13,8 @@ async function main() {
   const driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
   const session = driver.session();
   try {
-    const res = await session.run('MATCH (n) DETACH DELETE n RETURN count(n) AS deleted');
-    console.log(`Graph wiped. Re-seed with: pnpm kg:seed`);
+const res = await session.run('MATCH (n) WITH count(n) AS deleted MATCH (n) DETACH DELETE n RETURN deleted');
+console.log(`Graph wiped (${res.records[0].get('deleted').toNumber()} nodes). Re-seed with: pnpm kg:seed`);
   } finally {
     await session.close();
     await driver.close();
