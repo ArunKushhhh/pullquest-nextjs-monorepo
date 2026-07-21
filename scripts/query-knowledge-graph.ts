@@ -12,7 +12,8 @@ import neo4j from 'neo4j-driver';
 
 const URI = process.env.NEO4J_URI ?? 'bolt://localhost:7687';
 const USER = process.env.NEO4J_USER ?? 'neo4j';
-const PASSWORD = process.env.NEO4J_PASSWORD ?? 'pullquest123';
+const PASSWORD = process.env.NEO4J_PASSWORD;
+if (!PASSWORD) throw new Error('NEO4J_PASSWORD required (set in .env or environment)');
 
 const [, , command, arg] = process.argv;
 
