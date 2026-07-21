@@ -75,16 +75,31 @@ services:
     container_name: pullquest-web
     ports:
       - "3000:3000"
+    # No env_file: web must never receive server secrets (service role key,
+    # Stripe/GitHub private keys). Only public vars are passed explicitly.
     environment:
       - NEXT_PUBLIC_API_URL=http://api:3001
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - PORT=3000
-    env_file:
-      - .env
     depends_on:
       - api
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5
+    container_name: pullquest-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD}
+    volumes:
+      - neo4j-data:/data
     restart: unless-stopped
 
 volumes:
   redis-data:
   prometheus-data:
   grafana-data:
+  neo4j-data:
