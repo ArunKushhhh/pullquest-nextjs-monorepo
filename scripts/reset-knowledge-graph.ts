@@ -3,18 +3,18 @@
  * Usage: pnpm kg:reset
  */
 import neo4j from 'neo4j-driver';
+import { getNeo4jConfig } from './kg-config';
 
-const URI = process.env.NEO4J_URI ?? 'bolt://localhost:7687';
-const USER = process.env.NEO4J_USER ?? 'neo4j';
-const PASSWORD = process.env.NEO4J_PASSWORD;
-if (!PASSWORD) throw new Error('NEO4J_PASSWORD required (set in .env or environment)');
+const { uri: URI, user: USER, password: PASSWORD } = getNeo4jConfig();
 
 async function main() {
   const driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
   const session = driver.session();
   try {
-const res = await session.run('MATCH (n) WITH count(n) AS deleted MATCH (n) DETACH DELETE n RETURN deleted');
-console.log(`Graph wiped (${res.records[0].get('deleted').toNumber()} nodes). Re-seed with: pnpm kg:seed`);
+    const count = await session.run('MATCH (n) RETURN count(n) AS total');
+    const deleted = count.records[0].get('total').toNumber();
+    await session.run('MATCH (n) DETACH DELETE n');
+    console.log(`Graph wiped (${deleted} nodes). Re-seed with: pnpm kg:seed`);
   } finally {
     await session.close();
     await driver.close();

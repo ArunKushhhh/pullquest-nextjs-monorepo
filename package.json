@@ -21,9 +21,11 @@
     "kg:reset": "tsx scripts/reset-knowledge-graph.ts"
   },
   "devDependencies": {
+    "@types/node": "^20",
     "neo4j-driver": "^5.28.1",
     "tsx": "^4.23.0",
     "turbo": "^2",
+    "typescript": "^5",
     "vitest": "^4.1.10"
   }
 }

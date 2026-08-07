@@ -1,6 +1,9 @@
-# PullQuest — CLAUDE.md
-
 ---
+description: PullQuest monorepo standards — stack, KG workflow, commands, code style (always read first)
+alwaysApply: true
+---
+
+# PullQuest — Project Rules
 
 ## gstack (REQUIRED — global install)
 
@@ -24,10 +27,10 @@ Do not skip skills, ignore gstack errors, or work around missing gstack.
 
 Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
 and /browse are available. Use /browse for all web browsing.
-Use ~/.claude/skills/gstack/... for gstack file paths (the global path).
+Use `~/.claude/skills/gstack/...` for gstack file paths (the global install path).
 
-Use the /browse skill from gstack for all web browsing. Never use
-mcp__claude-in-chrome__* tools.
+Use the /browse skill from gstack for all web browsing. Prefer gstack /browse over
+browser MCP tools when gstack is available.
 
 Available gstack skills: /office-hours, /plan-ceo-review, /plan-eng-review,
 /plan-design-review, /design-consultation, /design-shotgun, /design-html,
@@ -51,9 +54,6 @@ Available gstack skills: /office-hours, /plan-ceo-review, /plan-eng-review,
 - One word when one word enough
 - Pattern: `[thing] [action] [reason]. [next step].`
 - Technical terms stay exact. Code blocks unchanged. Errors quoted exact.
-
-**Not:** "Sure! I'd be happy to help you with that. The issue you're experiencing is likely caused by..."
-**Yes:** "Bug in auth middleware. Token expiry check use `<` not `<=`. Fix:"
 
 **Exception:** Drop caveman temporarily for: security warnings, irreversible action confirmations, multi-step sequences where fragment order risks misread. Resume after.
 
@@ -99,24 +99,16 @@ scripts/
 Before starting ANY work, check project status via Knowledge Graph:
 
 ```bash
-# Check what's built vs pending
-pnpm kg:query status
-
-# Find which features are incomplete
-pnpm kg:query todo
-
-# Find recommended skills for a feature
+pnpm kg:query status          # Completion by phase
+pnpm kg:query todo            # Incomplete features
 pnpm kg:query skills "Authentication"
-
-# Get full project summary
-pnpm kg:query
+pnpm kg:query coverage        # PRD section audit
+pnpm kg:query                 # Full summary
 ```
-
-**Knowledge Graph Status:** ✅ SEEDED 2026-07-21 — 35 features (9 done / 22 partial / 4 todo), 33 skills, 7 phases. Neo4j on bolt://localhost:7687 (container `pullquest-neo4j`).
 
 Graph model: `(Project)-[:HAS_PHASE]->(Phase)-[:CONTAINS]->(Feature)`, `(Feature)-[:IMPLEMENTED_IN]->(Component)`, `(Feature)-[:DEPENDS_ON]->(Feature)`, `(Feature)-[:RECOMMENDED_SKILL]->(Skill)`.
 
-After completing work on any feature, update its status:
+After completing work on any feature:
 1. Edit `FEATURES` array in `scripts/seed-knowledge-graph.ts` (status: done/partial/todo)
 2. Re-run `pnpm kg:seed` (idempotent — MERGE-based)
 3. Ad-hoc inspection: Neo4j Browser at http://localhost:7474
@@ -124,8 +116,6 @@ After completing work on any feature, update its status:
 ---
 
 ## Required File References
-
-Every agent MUST read these files before working:
 
 | File | Purpose | When to Read |
 |---|---|---|
@@ -140,28 +130,13 @@ Every agent MUST read these files before working:
 ## Key Commands
 
 ```bash
-# Development
 pnpm dev                    # Start all services (Turborepo)
 pnpm build                  # Build all packages
 pnpm test                   # Run tests (Vitest)
-pnpm dev:web                # Frontend only
-pnpm dev:api                # API only
-pnpm dev:worker             # Worker only
-
-# Docker
-docker compose up -d        # All services (Redis, Prometheus, Grafana, Neo4j)
-docker compose up --build   # Full stack incl. app containers
-
-# Knowledge Graph
-pnpm kg:seed                # Seed Neo4j from PRD
-pnpm kg:query               # Query project status
-pnpm kg:query status        # Completion by phase
-pnpm kg:query todo          # Incomplete items
-pnpm kg:reset               # Wipe graph
-
-# Database
-pnpm db:migrate             # Run Supabase migrations
-pnpm db:types               # Generate DB types
+pnpm dev:web / dev:api / dev:worker
+docker compose up -d        # Redis, Prometheus, Grafana, Neo4j
+pnpm kg:seed / kg:query / kg:reset
+pnpm db:migrate / db:types
 ```
 
 ---
@@ -174,7 +149,6 @@ pnpm db:types               # Generate DB types
 - Express: route → controller → service pattern
 - Comments: explain WHY, not WHAT
 - Error handling: explicit, never swallow errors silently
-- Naming: descriptive in code, abbreviated in chat (caveman mode)
 - Commits: conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
 
 ---

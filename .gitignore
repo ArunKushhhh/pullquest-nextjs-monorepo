@@ -3,8 +3,19 @@ node_modules/
 jspm_packages/
 .pnp
 .pnp.js
-.cursor/
+# Cursor — track project rules/hooks only; ignore local IDE state + plugin rules
+.cursor/*
+!.cursor/hooks.json
+!.cursor/hooks/
+!.cursor/hooks/check-gstack.sh
+!.cursor/rules/
+!.cursor/rules/pullquest.mdc
+.cursor/settings.local.json
+.cursor/projects/
 .mcp.json
+
+# Legacy Claude Code (removed — use .cursor/ instead)
+.claude/
 
 # Build and output directories
 dist/
@@ -36,4 +47,3 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
-.claude/settings.local.json

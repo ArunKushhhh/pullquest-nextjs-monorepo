@@ -72,7 +72,7 @@
 | `engineering-advanced-skills:api-design-reviewer` | New/changed REST endpoints |
 | `engineering-advanced-skills:database-designer` | Schema changes, migration design |
 | `engineering-skills:stripe-integration-expert` | Stripe checkout, webhooks, subscriptions |
-| `claude-api` | LLM integration work (Gemini AI layer) — read BEFORE touching AI code |
+| `llm-api` | LLM integration work (Gemini AI layer) — read BEFORE touching AI code |
 
 ### Testing & QA
 | Skill | When |
@@ -111,7 +111,7 @@
 | Skill | When |
 |---|---|
 | gstack `/ship` | Full ship workflow: test, review, version, changelog, PR |
-| gstack `/browse` | ALL web browsing (never mcp__claude-in-chrome__*) |
+| gstack `/browse` | ALL web browsing when gstack is installed |
 | `caveman:caveman` | Communication compression — active by default |
 | `simplify` | Post-implementation cleanup pass |
 
@@ -144,5 +144,5 @@
 - KG is source of truth for build status. Query before work, update after.
 - Never skip VERIFY step. Build + test must pass before commit.
 - Security-touching diffs (auth/webhooks/payments/RLS) always get `security-review`.
-- All web browsing through gstack `/browse`.
+- All web browsing through gstack `/browse` when gstack is installed.
 - Update Memory.md same commit as the change it documents.

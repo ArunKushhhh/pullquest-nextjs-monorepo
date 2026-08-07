@@ -1,6 +1,7 @@
 # PullQuest — Agents.md
 
 > Every agent MUST read this file at session start. Defines roles, voice, and workflow.
+> Cursor project rules live in `.cursor/rules/pullquest.mdc` (always applied).
 
 ---
 
@@ -79,13 +80,14 @@ const data = await getUser(); // ← no error handling
 ### Pre-Work (Every Task)
 ```
 1. Read Agents.md (this file) — know your role
-2. Read Skills.md — know the workflow
-3. Read Context.md of target directory — know the landscape
-4. Read Memory.md of target directory — know the preferences
-5. Query Knowledge Graph — know what's built vs pending
+2. Cursor rules auto-loaded from .cursor/rules/pullquest.mdc
+3. Read Skills.md — know the workflow
+4. Read Context.md of target directory — know the landscape
+5. Read Memory.md of target directory — know the preferences
+6. Query Knowledge Graph — know what's built vs pending
    → pnpm kg:query status
    → pnpm kg:query skills "<FeatureName>"
-6. Read relevant PRD section — know the requirements
+7. Read relevant PRD section — know the requirements
 ```
 
 ### During Work
