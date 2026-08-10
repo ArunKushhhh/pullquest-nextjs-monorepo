@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { initSentry } from './config/sentry.js';
+import { initSentry, Sentry } from './config/sentry.js';
 
 // Initialize Sentry before other imports
 initSentry();
@@ -34,6 +34,28 @@ const workers = [
   aiWorker,
   treasuryWorker,
 ];
+
+// Report job failures and queue errors to Sentry (PRD §8.3)
+for (const worker of workers) {
+  worker.on('failed', (job, err) => {
+    console.error(`[Worker]: Job ${job?.id} in queue "${worker.name}" failed:`, err);
+    Sentry.withScope((scope) => {
+      scope.setTag('queue', worker.name);
+      scope.setContext('job', {
+        id: job?.id,
+        name: job?.name,
+        attemptsMade: job?.attemptsMade,
+        data: job?.data,
+      });
+      Sentry.captureException(err);
+    });
+  });
+
+  worker.on('error', (err) => {
+    console.error(`[Worker]: Queue "${worker.name}" error:`, err);
+    Sentry.captureException(err);
+  });
+}
 
 // 2. Setup Repeatable Cron Jobs on Startup
 async function setupCronJobs() {

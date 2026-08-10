@@ -1,7 +1,7 @@
 # apps/api/ — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-09
 
 ## Preferences
 - TypeScript strict mode enabled
@@ -16,6 +16,7 @@
 - Redis used for both caching (`cache.ts`) and leaderboard sorted sets (`leaderboard.ts`)
 - BullMQ queues defined in `src/config/queues.ts`, jobs processed by `apps/worker/`
 - Webhooks have dedicated directory (`src/webhooks/`) separate from routes
+- Gauge metrics (queue depth, failed jobs, treasury balance, active users) are populated by a 15s background poller (`src/metrics/poller.ts`), started/stopped in `index.ts`; counters/histograms are incremented inline in services (stake, pr, coin, xp)
 
 ## Gotchas
 - The `.env` file in this directory is a symlink/copy of the root `.env` — keep them in sync

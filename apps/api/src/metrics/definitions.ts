@@ -64,6 +64,12 @@ export const jobQueueDepth = new client.Gauge({
   labelNames: ['queue_name'],
 });
 
+export const jobsFailedTotal = new client.Gauge({
+  name: 'pullquest_jobs_failed_total',
+  help: 'Cumulative count of failed BullMQ jobs (from queue failed set)',
+  labelNames: ['queue_name'],
+});
+
 export const leaderboardUpdateDuration = new client.Histogram({
   name: 'pullquest_leaderboard_update_duration_seconds',
   help: 'Duration of leaderboard rebuilds/updates in seconds',

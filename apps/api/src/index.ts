@@ -13,6 +13,7 @@ import { redis } from './config/redis.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 import { metricsMiddleware } from './middleware/metrics.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { startMetricsPoller, stopMetricsPoller } from './metrics/poller.js';
 
 // Route Groups
 import healthRoutes from './routes/health.routes.js';
@@ -86,9 +87,13 @@ const server = app.listen(port, () => {
   console.log(`[server]: Environment: ${config.NODE_ENV}`);
 });
 
+// Populate queue/treasury/user gauges for Prometheus (PRD §8.4)
+startMetricsPoller();
+
 // Graceful Shutdown
 const shutdown = () => {
   console.log('[server]: Shutting down API server gracefully...');
+  stopMetricsPoller();
   server.close(async () => {
     console.log('[server]: HTTP server closed.');
     try {

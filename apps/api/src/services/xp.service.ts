@@ -7,7 +7,7 @@ import {
   XPLog,
 } from '@pullquest/shared';
 import { updateLeaderboardScore } from '../redis/leaderboard.js';
-import { xpAwardedTotal } from '../metrics/definitions.js';
+import { xpAwardedTotal, leaderboardUpdateDuration } from '../metrics/definitions.js';
 import { getPRById } from './pr.service.js';
 
 const supabase = createSupabaseAdmin();
@@ -97,6 +97,7 @@ export async function calculateAndAwardXP(
   if (logErr) throw logErr;
 
   // 6. Update Redis Leaderboards (Global and Org-specific)
+  const endLeaderboardTimer = leaderboardUpdateDuration.startTimer();
   try {
     await updateLeaderboardScore(`leaderboard:global:${actId}`, pr.user_id, globalXpAfter);
     if (repo.org_id) {
@@ -108,6 +109,8 @@ export async function calculateAndAwardXP(
     }
   } catch (redisErr) {
     console.error('[XP Service]: Redis leaderboard update failed:', redisErr);
+  } finally {
+    endLeaderboardTimer();
   }
 
   // 7. Emit Prometheus metrics

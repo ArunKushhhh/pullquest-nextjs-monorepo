@@ -13,6 +13,7 @@ import {
 import { creditCoins, unlockCoins } from './coin.service.js';
 import { resolveStake } from './stake.service.js';
 import { creditTreasury, debitTreasury } from './treasury.service.js';
+import { prOutcomesTotal } from '../metrics/definitions.js';
 
 const supabase = createSupabaseAdmin();
 
@@ -112,6 +113,7 @@ export async function handlePRMerged(prId: string): Promise<PullRequest> {
     .single();
 
   if (updateError) throw updateError;
+  prOutcomesTotal.inc({ outcome: PROutcome.MERGED });
   return updatedPR as PullRequest;
 }
 
@@ -184,6 +186,7 @@ export async function handlePRRejected(prId: string): Promise<PullRequest> {
     .single();
 
   if (updateError) throw updateError;
+  prOutcomesTotal.inc({ outcome: PROutcome.REJECTED });
   return updatedPR as PullRequest;
 }
 
@@ -238,5 +241,6 @@ export async function handlePRClosed(prId: string): Promise<PullRequest> {
     .single();
 
   if (updateError) throw updateError;
+  prOutcomesTotal.inc({ outcome: PROutcome.CLOSED_WITHOUT_MERGE });
   return updatedPR as PullRequest;
 }

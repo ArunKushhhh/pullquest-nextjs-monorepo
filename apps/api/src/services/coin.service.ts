@@ -1,7 +1,14 @@
 import { createSupabaseAdmin } from '@pullquest/database';
 import { User, CoinTransactionType } from '@pullquest/shared';
+import { coinsMintedTotal } from '../metrics/definitions.js';
 
 const supabase = createSupabaseAdmin();
+
+const MINT_TYPES: CoinTransactionType[] = [
+  CoinTransactionType.SIGNUP_BONUS,
+  CoinTransactionType.MONTHLY_MINT,
+  CoinTransactionType.MERGE_BONUS,
+];
 
 export async function getUserBalance(userId: string) {
   const { data: user, error } = await supabase
@@ -64,6 +71,10 @@ export async function creditCoins(
   });
 
   if (txError) throw txError;
+
+  if (MINT_TYPES.includes(type)) {
+    coinsMintedTotal.inc({ type }, amount);
+  }
 
   return updatedUser as User;
 }

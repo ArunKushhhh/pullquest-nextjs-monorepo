@@ -3,6 +3,7 @@ import { Stake, StakeStatus } from '@pullquest/shared';
 import { validateStakeAmount } from '@pullquest/shared';
 import { lockCoins, unlockCoins } from './coin.service.js';
 import { getIssueById } from './issue.service.js';
+import { stakesTotal } from '../metrics/definitions.js';
 
 const supabase = createSupabaseAdmin();
 
@@ -83,6 +84,8 @@ export async function stakeOnIssue(
     await unlockCoins(userId, amount);
     throw insertError;
   }
+
+  stakesTotal.inc({ difficulty: issue.difficulty });
 
   return newStake as Stake;
 }

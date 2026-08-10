@@ -1,7 +1,7 @@
 # apps/web/ — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-09
 
 ## Preferences
 - Server components by default; `'use client'` only where hooks/interactivity are needed
@@ -22,3 +22,4 @@
 ## Decisions
 - Frontend is a thin client: no business logic, all economy/XP/leaderboard computation lives in the Express API
 - Supabase used only for auth on the frontend; data reads go through the API, not direct Supabase queries
+- Sentry via `@sentry/nextjs` (pinned 10.67.0 — newer versions had broken npm metadata): `instrumentation-client.ts` (client + session replay), `sentry.server.config.ts` / `sentry.edge.config.ts` loaded through `instrumentation.ts`, `app/global-error.tsx` boundary, `next.config.ts` wrapped in `withSentryConfig`. Source-map upload needs a real `SENTRY_AUTH_TOKEN`

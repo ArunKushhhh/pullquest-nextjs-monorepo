@@ -1,9 +1,18 @@
 apiVersion: 1
 
+# Remove the legacy datasource (created without an explicit uid) so the
+# pinned-uid version below replaces it cleanly.
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
 datasources:
   - name: Prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
-    url: http://prometheus:9090
+    # Grafana runs with host networking (see docker-compose.yml), so
+    # Prometheus is reachable on localhost.
+    url: http://localhost:9090
     isDefault: true
     editable: true

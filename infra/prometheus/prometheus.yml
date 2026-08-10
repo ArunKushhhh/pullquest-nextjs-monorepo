@@ -7,7 +7,10 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
+  # Works for both host dev (pnpm dev:api) and the dockerized api service,
+  # since the api container publishes 3001 and Prometheus runs on the host
+  # network (see docker-compose.yml).
   - job_name: 'pullquest-api'
     metrics_path: '/api/metrics'
     static_configs:
-      - targets: ['host.docker.internal:3001']
+      - targets: ['localhost:3001']
