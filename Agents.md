@@ -64,7 +64,7 @@ const data = await getUser(); // ← no error handling
 | Functions | camelCase | `calculateXP()` |
 | Constants | UPPER_SNAKE | `MAX_DEBT_CEILING` |
 | Types/Interfaces | PascalCase | `StakeInput`, `PROutcome` |
-| Env vars | UPPER_SNAKE | `SUPABASE_URL` |
+| Env vars | UPPER_SNAKE | `REDIS_URL` |
 | DB columns | snake_case | `trust_multiplier` |
 
 ### Code Patterns

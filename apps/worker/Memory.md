@@ -8,7 +8,7 @@
 - TypeScript strict; explicit error handling, never swallow
 
 ## Patterns
-- Sentry initialized via `src/config/sentry.ts` (no-op when SENTRY_DSN unset); BullMQ `failed` and `error` worker events are captured to Sentry with queue/job context in `index.ts`
+- Sentry initialized via `src/config/sentry.ts` (no-op when NEXT_PUBLIC_SENTRY_DSN unset); BullMQ `failed` and `error` worker events are captured to Sentry with queue/job context in `index.ts`
 
 ## Gotchas
 - Worker queue failure counts surface in Prometheus via the API's metrics poller (worker itself exposes no metrics endpoint)

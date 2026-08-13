@@ -19,7 +19,8 @@
 - Gauge metrics (queue depth, failed jobs, treasury balance, active users) are populated by a 15s background poller (`src/metrics/poller.ts`), started/stopped in `index.ts`; counters/histograms are incremented inline in services (stake, pr, coin, xp)
 
 ## Gotchas
-- The `.env` file in this directory is a symlink/copy of the root `.env` — keep them in sync
+- Env loading: `config/env.ts` reads app-local `.env` first, then falls back to the monorepo root `.env` (single source of truth — no per-app copies for api/worker). The web app is different: Next.js only reads `apps/web/.env` (never the root), so web-facing `NEXT_PUBLIC_*` vars must live there
+- Canonical env names: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SENTRY_DSN` (server reads the same vars as web to avoid duplicates); server-only secrets keep plain names (`SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, ...)
 - Stripe webhook verification requires raw body — ensure body parser doesn't interfere
 - GitHub webhook signature verification uses GITHUB_WEBHOOK_SECRET
 - Rate limiter uses Redis for distributed rate limiting across instances

@@ -158,4 +158,4 @@ pnpm db:migrate / db:types
 - Copy `.env.example` → `.env` for local dev
 - Redis: port 6379 (container: `pullquest-redis`)
 - Neo4j: port 7687 bolt / 7474 browser (container: `pullquest-neo4j`)
-- Supabase: managed, connect via SUPABASE_URL + keys
+- Supabase: managed, connect via NEXT_PUBLIC_SUPABASE_URL + keys
