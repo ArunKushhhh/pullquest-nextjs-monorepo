@@ -8,7 +8,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "supabase:gen-types": "npx supabase gen types typescript --local > src/types/database.types.ts",
-    "supabase:gen-types:remote": "npx supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > src/types/database.types.ts",
+    "supabase:gen-types:remote": "npx supabase gen types typescript --project-id ${SUPABASE_PROJECT_ID:-btvkhmofawwfgcwwtiot} > src/types/database.types.ts",
     "supabase:push": "npx supabase db push"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 # apps/web/app/dashboard — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-13
 
 ## Preferences
 - Server component by default; `'use client'` only for interactive widgets (stake button, realtime updates)
@@ -9,13 +9,14 @@
 
 ## Patterns
 - Dashboard shows: connected repos status, active stakes, current Act info, leaderboard position
-- "Connect Repositories" button redirects to `github.com/apps/pullquest/installations/new`
+- "Connect Repositories" button redirects to `https://github.com/apps/${NEXT_PUBLIC_GITHUB_APP_NAME}/installations/new`
 - Realtime leaderboard updates via Supabase Realtime channel subscription (client component)
 
 ## Gotchas
 - GitHub App installation status fetched from `GET /api/installations/status` — not from Supabase directly
 - Act info from `GET /api/acts/current` — includes days remaining, act number
 - User must have at least one merged PR in current Act to appear on leaderboard
+- Install records only appear after GitHub delivers `installation` webhook to `POST /api/webhooks/github` — local needs a public tunnel, not `example.com`
 
 ## Decisions
-- Dashboard is partial — core layout exists, realtime + org sidebar pending
+- Dashboard is partial — Connect Repositories CTA wired; realtime + org sidebar pending
