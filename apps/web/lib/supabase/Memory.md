@@ -1,10 +1,11 @@
 # apps/web/lib/supabase — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-13
 
 ## Preferences
 - Use `@supabase/ssr` for all Next.js Supabase clients — never `@supabase/supabase-js` directly in web
+- Pass `Database` from `@pullquest/database` into `createBrowserClient<Database>` / `createServerClient<Database>`
 - Server components use `server.ts`; middleware uses `middleware.ts`; client components use `client.ts`
 
 ## Patterns
@@ -20,3 +21,4 @@
 
 ## Decisions
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are the only env vars allowed in web Supabase clients
+- Web depends on `@pullquest/database` for generated `Database` types only — never import the service-role factory into Next.js

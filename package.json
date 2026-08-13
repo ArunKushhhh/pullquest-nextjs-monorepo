@@ -15,7 +15,7 @@
     "docker:down": "docker compose down",
     "docker:build": "docker compose build",
     "db:migrate": "pnpm --filter @pullquest/database supabase:migrate",
-    "db:types": "pnpm --filter @pullquest/database supabase:gen-types",
+    "db:types": "pnpm --filter @pullquest/database supabase:gen-types:remote",
     "kg:seed": "tsx scripts/seed-knowledge-graph.ts",
     "kg:query": "tsx scripts/query-knowledge-graph.ts",
     "kg:reset": "tsx scripts/reset-knowledge-graph.ts"

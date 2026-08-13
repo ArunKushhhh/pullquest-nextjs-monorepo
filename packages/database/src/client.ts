@@ -1,13 +1,16 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from './types/database.types.js';
 
-let supabaseClient: SupabaseClient | null = null;
-let supabaseAdmin: SupabaseClient | null = null;
+export type TypedSupabaseClient = SupabaseClient<Database>;
+
+let supabaseClient: TypedSupabaseClient | null = null;
+let supabaseAdmin: TypedSupabaseClient | null = null;
 
 /**
  * Create a Supabase client using the anon key.
  * Used for user-scoped queries (respects RLS).
  */
-export function createSupabaseClient(): SupabaseClient {
+export function createSupabaseClient(): TypedSupabaseClient {
   if (supabaseClient) return supabaseClient;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -19,7 +22,7 @@ export function createSupabaseClient(): SupabaseClient {
     );
   }
 
-  supabaseClient = createClient(url, anonKey, {
+  supabaseClient = createClient<Database>(url, anonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -35,7 +38,7 @@ export function createSupabaseClient(): SupabaseClient {
  *
  * IMPORTANT: Never expose this client to the frontend.
  */
-export function createSupabaseAdmin(): SupabaseClient {
+export function createSupabaseAdmin(): TypedSupabaseClient {
   if (supabaseAdmin) return supabaseAdmin;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -47,7 +50,7 @@ export function createSupabaseAdmin(): SupabaseClient {
     );
   }
 
-  supabaseAdmin = createClient(url, serviceRoleKey, {
+  supabaseAdmin = createClient<Database>(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
