@@ -1048,7 +1048,7 @@ All custom services are containerized and orchestrated via `docker-compose.yml`:
 | `grafana` | `grafana/grafana:latest` | `3002:3000` | Dashboards & alerting |
 
 > [!NOTE]
-> PostgreSQL is hosted by **Supabase** (managed) — not in Docker Compose. The API server connects to Supabase via `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+> PostgreSQL is hosted by **Supabase** (managed) — not in Docker Compose. The API server connects to Supabase via `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 
 ### 8.2 Redis
 

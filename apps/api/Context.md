@@ -20,7 +20,7 @@ Express.js REST API server (port 3001) that handles authentication, GitHub webho
 - `@pullquest/shared` (workspace) — shared types, enums, constants, utils
 - `@pullquest/database` (workspace) — Supabase client and DB types
 - External: Express, ioredis, BullMQ, Stripe, prom-client, Sentry, jsonwebtoken
-- Env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, REDIS_URL, STRIPE_SECRET_KEY, SENTRY_DSN, JWT_SECRET, GITHUB_WEBHOOK_SECRET
+- Env vars: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, REDIS_URL, STRIPE_SECRET_KEY, NEXT_PUBLIC_SENTRY_DSN, GITHUB_WEBHOOK_SECRET
 
 ## Relationships
 - Receives HTTP requests from `apps/web/` (Next.js frontend)

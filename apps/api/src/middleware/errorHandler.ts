@@ -14,7 +14,7 @@ export function errorHandler(
   console.error('[Error Handler]:', err);
 
   // Capture in Sentry if configured
-  if (process.env.SENTRY_DSN) {
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     Sentry.captureException(err);
   }
 

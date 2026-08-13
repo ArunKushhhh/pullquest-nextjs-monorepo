@@ -14,6 +14,7 @@
 - Relative imports between app dirs (`../../lib/api`); `@/` alias exists but is mostly used inside `components/ui`
 
 ## Gotchas
+- Next.js only loads `apps/web/.env` — NOT the repo root `.env`. All web vars must live in the app-local file (`.env.example` alongside it documents them). Keep server secrets out of it
 - This project is on Next.js 16 — root file is `proxy.ts`, NOT `middleware.ts` (deprecated convention)
 - Web port overridden in `docker-compose.yml`; local dev is :3000
 - `NEXT_PUBLIC_API_URL` (browser) vs `INTERNAL_API_URL` (server-side callback route) point at the same Express API but differ in Docker networking

@@ -10,7 +10,7 @@ export function initSentry() {
     });
     console.log('[Worker Sentry]: Initialized successfully.');
   } else {
-    console.log('[Worker Sentry]: SENTRY_DSN not configured. Skipping Sentry initialization.');
+    console.log('[Worker Sentry]: NEXT_PUBLIC_SENTRY_DSN not configured. Skipping Sentry initialization.');
   }
 }
 export { Sentry };
