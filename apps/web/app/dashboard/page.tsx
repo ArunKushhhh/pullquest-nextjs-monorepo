@@ -5,7 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import { apiFetch } from '../../lib/api';
-import { Coins, Trophy, Zap, Clock, ShieldCheck, CheckCircle2, AlertTriangle, CreditCard, Loader2, ArrowRight } from 'lucide-react';
+import { Coins, Trophy, Zap, Clock, ShieldCheck, CheckCircle2, AlertTriangle, CreditCard, Loader2, ArrowRight, Github } from 'lucide-react';
+
+const GITHUB_APP_SLUG = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'pullquest-nextjs';
+const GITHUB_INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`;
 
 const COIN_BUNDLES = [
   { id: 'coins_100', name: 'Initiator Pack', amount: 100, price: '$1.00', desc: 'Perfect for quick staking on simple Easy-labeled issues.' },
@@ -36,6 +39,11 @@ function DashboardContent() {
   const [profile, setProfile] = useState<any>(null);
   const [stakes, setStakes] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [installations, setInstallations] = useState<Array<{
+    id: string;
+    account_login: string;
+    account_type: string;
+  }>>([]);
   
   const [loading, setLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
@@ -43,15 +51,20 @@ function DashboardContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, stakesRes, historyRes] = await Promise.all([
+      const [profileRes, stakesRes, historyRes, installRes] = await Promise.all([
         apiFetch('/api/auth/me'),
         apiFetch('/api/stakes/mine'),
         apiFetch('/api/coins/purchase-history'),
+        apiFetch('/api/installations/status'),
       ]);
 
       if (profileRes.ok) setProfile(await profileRes.json());
       if (stakesRes.ok) setStakes(await stakesRes.json());
       if (historyRes.ok) setHistory(await historyRes.json());
+      if (installRes.ok) {
+        const body = await installRes.json();
+        setInstallations(body.installations ?? []);
+      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -160,6 +173,36 @@ function DashboardContent() {
                     <span className="text-lg font-black text-amber-500 mt-0.5">{profile ? profile.earned_coins + profile.purchased_coins : 0}</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 backdrop-blur-xl flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-white font-bold text-sm">
+                  <Github className="h-4 w-4 text-indigo-400" />
+                  <span>Repositories</span>
+                </div>
+                {installations.length === 0 ? (
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Connect the PullQuest GitHub App to a user or org so issue and PR webhooks can flow in.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1.5 text-xs text-zinc-300">
+                    {installations.map((inst) => (
+                      <li key={inst.id} className="flex items-center justify-between gap-2">
+                        <span className="font-medium truncate">{inst.account_login}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                          {inst.account_type}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <a
+                  href={GITHUB_INSTALL_URL}
+                  className="mt-1 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-zinc-200 transition-colors"
+                >
+                  {installations.length === 0 ? 'Connect Repositories' : 'Manage on GitHub'}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
               </div>
 
               {/* Staking constraints detail */}
