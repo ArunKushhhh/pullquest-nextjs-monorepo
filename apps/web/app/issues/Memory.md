@@ -14,6 +14,8 @@
 
 ## Gotchas
 - Issue only appears if it has valid `Stake-X` label AND difficulty band set by maintainer
+- Labels accepted: `Easy`/`Medium`/`Hard` (or `Stake-Easy` etc.) plus optional `Stake-50` for exact coins
+- Worker now registers on `issues.opened`, `reopened`, and `labeled` — not labeled-only
 - Contributor must have sufficient coin balance before staking — show balance in UI
 - Staked coins deducted immediately and locked until PR resolution
 

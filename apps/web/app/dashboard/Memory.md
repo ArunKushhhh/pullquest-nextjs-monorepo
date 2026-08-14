@@ -20,3 +20,5 @@
 
 ## Decisions
 - Dashboard is partial — Connect Repositories CTA wired; realtime + org sidebar pending
+- GET /api/installations/status now embeds `repositories`; dashboard lists `full_name` under the GitHub account
+- Worker must persist `payload.repositories` on `installation.created` — that event is not selectable in App settings (GitHub sends it by default)

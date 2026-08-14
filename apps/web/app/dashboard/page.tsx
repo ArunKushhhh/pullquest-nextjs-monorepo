@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import { apiFetch } from '../../lib/api';
-import { Coins, Trophy, Zap, Clock, ShieldCheck, CheckCircle2, AlertTriangle, CreditCard, Loader2, ArrowRight, Github } from 'lucide-react';
+import { Coins, Trophy, Zap, Clock, ShieldCheck, CheckCircle2, AlertTriangle, CreditCard, Loader2, ArrowRight, GitBranch } from 'lucide-react';
 
 const GITHUB_APP_SLUG = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'pullquest-nextjs';
 const GITHUB_INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`;
@@ -34,6 +34,7 @@ export default function DashboardPage() {
 function DashboardContent() {
   const searchParams = useSearchParams();
   const checkoutStatus = searchParams.get('checkout');
+  const setupAction = searchParams.get('setup_action');
   
   const [activeTab, setActiveTab] = useState<'overview' | 'stakes' | 'purchases'>('overview');
   const [profile, setProfile] = useState<any>(null);
@@ -43,6 +44,7 @@ function DashboardContent() {
     id: string;
     account_login: string;
     account_type: string;
+    repositories?: Array<{ id: string; name: string; full_name: string; is_private: boolean }>;
   }>>([]);
   
   const [loading, setLoading] = useState(true);
@@ -122,6 +124,17 @@ function DashboardContent() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Checkout alerts */}
+        {setupAction === 'install' && !loading && (
+          <div className="mb-6 flex items-center gap-3 p-4 rounded-xl border border-indigo-500/20 bg-indigo-500/5 text-indigo-300 text-sm">
+            <GitBranch className="h-5 w-5 shrink-0" />
+            <div>
+              <span className="font-semibold text-white">GitHub App installed.</span>{' '}
+              {installations.length === 0
+                ? 'Waiting for the installation webhook. If this stays empty, redeliver the installation event from the GitHub App’s Recent Deliveries, or save repository access again.'
+                : 'Repositories are connected and webhooks can flow in.'}
+            </div>
+          </div>
+        )}
         {checkoutStatus === 'success' && (
           <div className="mb-6 flex items-center gap-3 p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-sm">
             <CheckCircle2 className="h-5 w-5 shrink-0" />
@@ -177,7 +190,7 @@ function DashboardContent() {
 
               <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 backdrop-blur-xl flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-white font-bold text-sm">
-                  <Github className="h-4 w-4 text-indigo-400" />
+                  <GitBranch className="h-4 w-4 text-indigo-400" />
                   <span>Repositories</span>
                 </div>
                 {installations.length === 0 ? (
@@ -185,15 +198,33 @@ function DashboardContent() {
                     Connect the PullQuest GitHub App to a user or org so issue and PR webhooks can flow in.
                   </p>
                 ) : (
-                  <ul className="flex flex-col gap-1.5 text-xs text-zinc-300">
-                    {installations.map((inst) => (
-                      <li key={inst.id} className="flex items-center justify-between gap-2">
-                        <span className="font-medium truncate">{inst.account_login}</span>
-                        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
-                          {inst.account_type}
-                        </span>
-                      </li>
-                    ))}
+                  <ul className="flex flex-col gap-3 text-xs text-zinc-300">
+                    {installations.map((inst) => {
+                      const repos = inst.repositories ?? [];
+                      return (
+                        <li key={inst.id} className="flex flex-col gap-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium truncate">{inst.account_login}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                              {inst.account_type}
+                            </span>
+                          </div>
+                          {repos.length === 0 ? (
+                            <p className="text-[10px] text-zinc-500 leading-relaxed">
+                              Account connected. Repository list has not synced yet — redeliver the installation webhook.
+                            </p>
+                          ) : (
+                            <ul className="flex flex-col gap-1 pl-0.5">
+                              {repos.map((repo) => (
+                                <li key={repo.id} className="truncate text-zinc-400">
+                                  {repo.full_name}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
                 <a
