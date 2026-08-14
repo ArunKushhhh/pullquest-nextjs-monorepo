@@ -10,10 +10,14 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     setLoading(true);
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('installation_id')
+      ? `/dashboard?${params.toString()}`
+      : '/dashboard';
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
     if (error) {

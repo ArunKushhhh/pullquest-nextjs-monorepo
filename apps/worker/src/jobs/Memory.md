@@ -19,6 +19,8 @@
 - Queue names in `../queues/` must exactly match `apps/api/src/config/queues.ts` — mismatch silently drops jobs
 - `actReset` must resolve all open stakes before resetting coins — locked coins cannot be reset mid-stake
 - `aiSummary` never assigns XP — Gemini output is summary only
+- `installation.created` includes granted repos (max 50); worker must upsert them. `installation_repositories.added` only fires when the repo set changes later, not on every install.
+- Register stakable issues on `issues.opened` / `reopened` / `labeled`, not labeled-only — creating an issue with labels already applied never sends a later labeled event for those labels.
 
 ## Decisions
 - Processors are thin orchestrators; business logic lives in `@pullquest/api` services (imported as workspace dep)

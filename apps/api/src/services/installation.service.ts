@@ -5,7 +5,7 @@ const supabase = createSupabaseAdmin();
 export async function getInstallationStatus(userId: string) {
   const { data, error } = await supabase
     .from('installations')
-    .select('*')
+    .select('*, repositories(id, name, full_name, is_private)')
     .eq('installed_by', userId);
 
   if (error) throw error;

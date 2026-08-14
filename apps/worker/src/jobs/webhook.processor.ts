@@ -136,6 +136,54 @@ async function debitTreasury(orgId: string, amount: number, reason: string) {
     .eq('org_id', orgId);
 }
 
+async function registerStakableIssue(payload: any): Promise<void> {
+  const { difficulty, amount } = parseIssueLabels(payload.issue.labels || []);
+  if (!difficulty) {
+    console.log(`[Worker Webhook]: Issue #${payload.issue.number} has no valid difficulty labels. Ignoring.`);
+    return;
+  }
+
+  const range = DIFFICULTY_STAKE_RANGES[difficulty];
+  let finalAmount = amount;
+
+  if (finalAmount === null) {
+    finalAmount = range.min;
+  } else if (finalAmount < range.min || finalAmount > range.max) {
+    console.warn(`[Worker Webhook]: Stake amount ${finalAmount} is outside range for difficulty ${difficulty} (${range.min}-${range.max}). Ignoring.`);
+    return;
+  }
+
+  const { data: repo } = await supabase
+    .from('repositories')
+    .select('id, org_id, trust_multiplier')
+    .eq('github_repo_id', payload.repository.id)
+    .single();
+
+  if (!repo) {
+    console.warn(`[Worker Webhook]: Repo github_repo_id=${payload.repository.id} not in repositories table. Ignoring issue #${payload.issue.number}.`);
+    return;
+  }
+
+  const { error } = await supabase.from('issues').upsert(
+    {
+      github_issue_id: payload.issue.id,
+      github_issue_number: payload.issue.number,
+      repo_id: repo.id,
+      org_id: repo.org_id,
+      title: payload.issue.title,
+      url: payload.issue.html_url,
+      stake_amount: finalAmount,
+      difficulty,
+      trust_multiplier: Number(repo.trust_multiplier),
+      is_open: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'github_issue_id' }
+  );
+  if (error) throw error;
+  console.log(`[Worker Webhook]: Registered stakable issue #${payload.issue.number} with difficulty ${difficulty} and amount ${finalAmount}`);
+}
+
 export default async function processWebhook(job: Job): Promise<void> {
   const { event, payload } = job.data;
   console.log(`[Worker Webhook Job]: Processing event "${event}" (action: ${payload?.action})`);
@@ -161,7 +209,7 @@ export default async function processWebhook(job: Job): Promise<void> {
         const userId = user ? user.id : '00000000-0000-0000-0000-000000000000';
 
         // Upsert installation
-        const { data: inst } = await supabase
+        const { data: inst, error: instErr } = await supabase
           .from('installations')
           .upsert(
             {
@@ -178,6 +226,8 @@ export default async function processWebhook(job: Job): Promise<void> {
           )
           .select('*')
           .single();
+
+        if (instErr) throw instErr;
 
         if (inst && accountType === 'Organization') {
           // Upsert organization
@@ -215,6 +265,38 @@ export default async function processWebhook(job: Job): Promise<void> {
                 is_staking_disabled: false,
               });
             }
+          }
+        }
+
+        // installation.created includes the granted repo list (capped at 50 by GitHub)
+        if (inst && Array.isArray(payload.repositories)) {
+          let orgId: string | null = null;
+          if (accountType === 'Organization') {
+            const { data: org } = await supabase
+              .from('organizations')
+              .select('id')
+              .eq('github_org_id', accountId)
+              .single();
+            if (org) orgId = org.id;
+          }
+
+          for (const repo of payload.repositories) {
+            const { error: repoErr } = await supabase.from('repositories').upsert(
+              {
+                github_repo_id: repo.id,
+                installation_id: inst.id,
+                org_id: orgId,
+                name: repo.name,
+                full_name: repo.full_name,
+                star_count: 0,
+                member_count: 0,
+                trust_multiplier: 0.5,
+                is_private: repo.private || false,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'github_repo_id' }
+            );
+            if (repoErr) throw repoErr;
           }
         }
       } else if (payload.action === 'deleted') {
@@ -284,52 +366,8 @@ export default async function processWebhook(job: Job): Promise<void> {
     else if (event === 'issues') {
       const action = payload.action;
 
-      if (action === 'labeled') {
-        const { difficulty, amount } = parseIssueLabels(payload.issue.labels || []);
-        if (!difficulty) {
-          console.log(`[Worker Webhook]: Issue #${payload.issue.number} has no valid difficulty labels. Ignoring.`);
-          return;
-        }
-
-        // Validate range and assign amount
-        const range = DIFFICULTY_STAKE_RANGES[difficulty];
-        let finalAmount = amount;
-
-        if (finalAmount === null) {
-          finalAmount = range.min; // Default to min of difficulty range
-        } else {
-          if (finalAmount < range.min || finalAmount > range.max) {
-            console.warn(`[Worker Webhook]: Stake amount ${finalAmount} is outside range for difficulty ${difficulty} (${range.min}-${range.max}). Ignoring.`);
-            return;
-          }
-        }
-
-        // Get repository
-        const { data: repo } = await supabase
-          .from('repositories')
-          .select('id, org_id, trust_multiplier')
-          .eq('github_repo_id', payload.repository.id)
-          .single();
-
-        if (repo) {
-          await supabase.from('issues').upsert(
-            {
-              github_issue_id: payload.issue.id,
-              github_issue_number: payload.issue.number,
-              repo_id: repo.id,
-              org_id: repo.org_id,
-              title: payload.issue.title,
-              url: payload.issue.html_url,
-              stake_amount: finalAmount,
-              difficulty,
-              trust_multiplier: Number(repo.trust_multiplier),
-              is_open: true,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'github_issue_id' }
-          );
-          console.log(`[Worker Webhook]: Registered stakable issue #${payload.issue.number} with difficulty ${difficulty} and amount ${finalAmount}`);
-        }
+      if (action === 'labeled' || action === 'opened' || action === 'reopened') {
+        await registerStakableIssue(payload);
       } else if (action === 'unlabeled') {
         // If stake labels or difficulty labels are removed, verify if valid set remains. If not, unregister.
         const { difficulty } = parseIssueLabels(payload.issue.labels || []);
