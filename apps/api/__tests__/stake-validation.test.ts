@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateStakeAmount, calculateRejectionDeduction, calculateClosedCompensation } from '@pullquest/shared';
+import { validateStakeAmount, calculateRejectionDeduction, calculateClosedCompensation, evaluateStakeAttempt } from '@pullquest/shared';
 import { Difficulty } from '@pullquest/shared';
 
 describe('Staking Validation & Economy Rules', () => {
@@ -8,6 +8,18 @@ describe('Staking Validation & Economy Rules', () => {
       expect(validateStakeAmount(15, Difficulty.EASY)).toBe(true);
       expect(validateStakeAmount(50, Difficulty.MEDIUM)).toBe(true);
       expect(validateStakeAmount(120, Difficulty.HARD)).toBe(true);
+    });
+
+    it('does not treat a band-valid amount as enough without matching Stake-X', () => {
+      const result = evaluateStakeAttempt({
+        amount: 100,
+        issueStakeAmount: 160,
+        difficulty: Difficulty.HARD,
+        isOpen: true,
+        alreadyStaked: false,
+        stakingDisabled: false,
+      });
+      expect(result).toMatchObject({ ok: false, code: 'AMOUNT_MISMATCH' });
     });
 
     it('should reject stakes below difficulty min', () => {

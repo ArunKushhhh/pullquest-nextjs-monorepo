@@ -100,6 +100,16 @@ const data = await getUser(); // ← no error handling
 6. Test before committing
 ```
 
+### Loop engineering (every feature)
+```
+After implementation, do not move to the next PRD feature until this loop closes:
+1. Start infra (docker compose: redis, prometheus, grafana, neo4j) + pnpm dev
+2. Open the relevant UI in the browser (gstack browse)
+3. Exercise the user path; if data is blocking, fix it in Supabase
+4. If the path fails, patch code and re-verify — repeat until the feature works
+5. Only then update KG status to done and proceed
+```
+
 ### Post-Work
 ```
 1. Update Memory.md with new decisions/patterns/gotchas

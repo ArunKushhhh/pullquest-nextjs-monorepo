@@ -125,6 +125,58 @@ export function getActResetCoinBalance(
 
 // ─── Stake Validation ──────────────────────────────────────────────
 
+export type StakeRejectionCode =
+  | 'INVALID_AMOUNT'
+  | 'ISSUE_CLOSED'
+  | 'AMOUNT_MISMATCH'
+  | 'AMOUNT_OUT_OF_BAND'
+  | 'ALREADY_STAKED'
+  | 'STAKING_DISABLED';
+
+export const STAKE_REJECTION_MESSAGES: Record<StakeRejectionCode, string> = {
+  INVALID_AMOUNT: 'Stake amount must be a positive integer',
+  ISSUE_CLOSED: 'Issue is closed for staking',
+  AMOUNT_MISMATCH: 'Stake amount must match the issue Stake-X label',
+  AMOUNT_OUT_OF_BAND: 'Stake amount is outside the difficulty band',
+  ALREADY_STAKED: 'You have already placed a stake on this issue',
+  STAKING_DISABLED:
+    'Staking is disabled for this organization (treasury debt ceiling)',
+};
+
+const DIFFICULTY_BY_NAME: Record<string, Difficulty> = {
+  EASY: Difficulty.EASY,
+  MEDIUM: Difficulty.MEDIUM,
+  HARD: Difficulty.HARD,
+};
+
+/**
+ * Parse maintainer labels into a difficulty band and exact Stake-X amount.
+ * `Stake-Easy` / `Easy` set difficulty only; `Stake-50` sets the exact coin amount.
+ */
+export function parseStakeLabels(labelNames: string[]): {
+  difficulty: Difficulty | null;
+  amount: number | null;
+} {
+  let difficulty: Difficulty | null = null;
+  let amount: number | null = null;
+
+  for (const raw of labelNames) {
+    const name = raw.trim();
+    const diffMatch = name.match(/^(Stake-)?(Easy|Medium|Hard)$/i);
+    if (diffMatch) {
+      difficulty = DIFFICULTY_BY_NAME[diffMatch[2].toUpperCase()] ?? null;
+      continue;
+    }
+
+    const amountMatch = name.match(/^Stake-(\d+)$/i);
+    if (amountMatch) {
+      amount = parseInt(amountMatch[1], 10);
+    }
+  }
+
+  return { difficulty, amount };
+}
+
 /**
  * Validate that a stake amount is within the allowed range for a difficulty.
  */
@@ -134,6 +186,62 @@ export function validateStakeAmount(
 ): boolean {
   const range = DIFFICULTY_STAKE_RANGES[difficulty];
   return amount >= range.min && amount <= range.max;
+}
+
+/**
+ * Contributor stake rules from PRD §2.2 / §7.3 — exact Stake-X, open issue, band, uniqueness.
+ */
+export function evaluateStakeAttempt(input: {
+  amount: number;
+  issueStakeAmount: number;
+  difficulty: Difficulty;
+  isOpen: boolean;
+  alreadyStaked: boolean;
+  stakingDisabled: boolean;
+}): { ok: true } | { ok: false; code: StakeRejectionCode; message: string } {
+  if (!Number.isInteger(input.amount) || input.amount <= 0) {
+    return {
+      ok: false,
+      code: 'INVALID_AMOUNT',
+      message: STAKE_REJECTION_MESSAGES.INVALID_AMOUNT,
+    };
+  }
+  if (!input.isOpen) {
+    return {
+      ok: false,
+      code: 'ISSUE_CLOSED',
+      message: STAKE_REJECTION_MESSAGES.ISSUE_CLOSED,
+    };
+  }
+  if (input.stakingDisabled) {
+    return {
+      ok: false,
+      code: 'STAKING_DISABLED',
+      message: STAKE_REJECTION_MESSAGES.STAKING_DISABLED,
+    };
+  }
+  if (input.alreadyStaked) {
+    return {
+      ok: false,
+      code: 'ALREADY_STAKED',
+      message: STAKE_REJECTION_MESSAGES.ALREADY_STAKED,
+    };
+  }
+  if (input.amount !== input.issueStakeAmount) {
+    return {
+      ok: false,
+      code: 'AMOUNT_MISMATCH',
+      message: `Stake amount must be exactly ${input.issueStakeAmount} PC`,
+    };
+  }
+  if (!validateStakeAmount(input.amount, input.difficulty)) {
+    return {
+      ok: false,
+      code: 'AMOUNT_OUT_OF_BAND',
+      message: STAKE_REJECTION_MESSAGES.AMOUNT_OUT_OF_BAND,
+    };
+  }
+  return { ok: true };
 }
 
 // ─── Economic Helpers ──────────────────────────────────────────────

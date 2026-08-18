@@ -106,6 +106,22 @@ export interface Issue {
   updated_at: string;
 }
 
+export interface IssueRepoSummary {
+  name: string;
+  full_name: string;
+}
+
+export interface IssueOrgSummary {
+  name: string;
+  credibility_score: number;
+}
+
+export interface StakableIssue extends Issue {
+  repositories?: IssueRepoSummary | null;
+  organizations?: IssueOrgSummary | null;
+  participant_count?: number;
+}
+
 export interface Stake {
   id: string;
   user_id: string;

@@ -1,7 +1,7 @@
 # apps/api/src/services — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-17
 
 ## Preferences
 - Stateless functions, not classes — no singleton state in services
@@ -15,6 +15,8 @@
 - Leaderboard writes: `ZADD leaderboard:global:act:{actId}` and `leaderboard:org:{orgId}:act:{actId}`
 - Treasury debt ceiling check after every debit — disable staking if balance < −2000
 - Coin tracking: `earned_coins` and `purchased_coins` stored separately; purchased never reset on Act reset
+- Stake rules live in `@pullquest/shared` `evaluateStakeAttempt` — exact Stake-X, open issue, band, uniqueness, treasury gate
+- After a successful stake: lock coins, insert `stakes`, `HSET cache:issue:{id}` (2m), `HSET session:{userId}` active_stakes (30m)
 
 ## Gotchas
 - `EvaluationService` must block merge path — XP cannot be calculated without evaluation score
@@ -23,6 +25,8 @@
 - Trust multiplier uses highest applicable bracket (not additive) — PRD §2.4
 - `ActService` reset runs in BullMQ job, not HTTP request — no response timeout concern
 - `LeaderboardService` must publish Supabase Realtime event after every ZADD
+- `POST /api/issues/:id/stake` amount must equal `issues.stake_amount` — difficulty-band-only amounts are rejected
+- `StakeError` maps to 400/403/404/409; unique `(user_id, issue_id)` is a 409 even on races
 
 ## Decisions
 - Flat functions over classes for simplicity; revisit if service complexity grows

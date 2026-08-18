@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getStakableIssues, getIssueById } from '../services/issue.service.js';
-import { stakeOnIssue } from '../services/stake.service.js';
+import { StakeError, stakeOnIssue } from '../services/stake.service.js';
 import { Difficulty } from '@pullquest/shared';
 
 const router = Router();
@@ -46,19 +46,23 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/:id/stake', authMiddleware, async (req, res, next) => {
   try {
-    const { amount } = req.body;
+    const amount = Number(req.body?.amount);
     const userId = req.user!.id;
     const issueId = req.params.id;
 
-    if (!amount || typeof amount !== 'number') {
-      res.status(400).json({ error: 'BadRequest', message: 'Missing or invalid stake amount' });
+    if (!Number.isInteger(amount) || amount <= 0) {
+      res.status(400).json({ error: 'INVALID_AMOUNT', message: 'Missing or invalid stake amount' });
       return;
     }
 
     const stake = await stakeOnIssue(userId, issueId, amount);
     res.status(201).json(stake);
-  } catch (err: any) {
-    res.status(400).json({ error: 'BadRequest', message: err.message || 'Staking failed' });
+  } catch (err) {
+    if (err instanceof StakeError) {
+      res.status(err.statusCode).json({ error: err.code, message: err.message });
+      return;
+    }
+    next(err);
   }
 });
 

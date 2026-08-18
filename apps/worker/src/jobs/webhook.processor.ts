@@ -6,6 +6,7 @@ import {
   MERGE_BONUS,
   calculateRejectionDeduction,
   calculateClosedCompensation,
+  parseStakeLabels,
   StakeStatus,
   PRStatus,
   PROutcome,
@@ -13,30 +14,6 @@ import {
 } from '@pullquest/shared';
 
 const supabase = createSupabaseAdmin();
-
-// Helper to parse difficulty and exact stake amount from issue labels
-function parseIssueLabels(labels: any[]): { difficulty: Difficulty | null; amount: number | null } {
-  let difficulty: Difficulty | null = null;
-  let amount: number | null = null;
-
-  for (const label of labels) {
-    const name = label.name || '';
-
-    // Check for difficulty labels (e.g., "Easy", "Medium", "Hard", "Stake-Easy", "Stake-Medium", "Stake-Hard")
-    const diffMatch = name.match(/^(Stake-)?(Easy|Medium|Hard)$/i);
-    if (diffMatch) {
-      difficulty = diffMatch[2].toUpperCase() as Difficulty;
-    }
-
-    // Check for exact stake amount labels (e.g., "Stake-50")
-    const amountMatch = name.match(/^Stake-(\d+)$/i);
-    if (amountMatch) {
-      amount = parseInt(amountMatch[1], 10);
-    }
-  }
-
-  return { difficulty, amount };
-}
 
 // Helpers for Coin Operations (equivalent to coin.service)
 async function creditCoins(userId: string, amount: number, type: CoinTransactionType, referenceId?: string, description?: string) {
@@ -137,19 +114,17 @@ async function debitTreasury(orgId: string, amount: number, reason: string) {
 }
 
 async function registerStakableIssue(payload: any): Promise<void> {
-  const { difficulty, amount } = parseIssueLabels(payload.issue.labels || []);
-  if (!difficulty) {
-    console.log(`[Worker Webhook]: Issue #${payload.issue.number} has no valid difficulty labels. Ignoring.`);
+  const labelNames = (payload.issue.labels || []).map((label: { name?: string }) => label.name || '');
+  const { difficulty, amount } = parseStakeLabels(labelNames);
+  // Stake-X is mandatory — do not default to the band minimum (PRD §2.2)
+  if (!difficulty || amount === null) {
+    console.log(`[Worker Webhook]: Issue #${payload.issue.number} missing difficulty or Stake-X label. Ignoring.`);
     return;
   }
 
   const range = DIFFICULTY_STAKE_RANGES[difficulty];
-  let finalAmount = amount;
-
-  if (finalAmount === null) {
-    finalAmount = range.min;
-  } else if (finalAmount < range.min || finalAmount > range.max) {
-    console.warn(`[Worker Webhook]: Stake amount ${finalAmount} is outside range for difficulty ${difficulty} (${range.min}-${range.max}). Ignoring.`);
+  if (amount < range.min || amount > range.max) {
+    console.warn(`[Worker Webhook]: Stake amount ${amount} is outside range for difficulty ${difficulty} (${range.min}-${range.max}). Ignoring.`);
     return;
   }
 
@@ -172,7 +147,7 @@ async function registerStakableIssue(payload: any): Promise<void> {
       org_id: repo.org_id,
       title: payload.issue.title,
       url: payload.issue.html_url,
-      stake_amount: finalAmount,
+      stake_amount: amount,
       difficulty,
       trust_multiplier: Number(repo.trust_multiplier),
       is_open: true,
@@ -181,7 +156,7 @@ async function registerStakableIssue(payload: any): Promise<void> {
     { onConflict: 'github_issue_id' }
   );
   if (error) throw error;
-  console.log(`[Worker Webhook]: Registered stakable issue #${payload.issue.number} with difficulty ${difficulty} and amount ${finalAmount}`);
+  console.log(`[Worker Webhook]: Registered stakable issue #${payload.issue.number} with difficulty ${difficulty} and amount ${amount}`);
 }
 
 export default async function processWebhook(job: Job): Promise<void> {
@@ -369,9 +344,9 @@ export default async function processWebhook(job: Job): Promise<void> {
       if (action === 'labeled' || action === 'opened' || action === 'reopened') {
         await registerStakableIssue(payload);
       } else if (action === 'unlabeled') {
-        // If stake labels or difficulty labels are removed, verify if valid set remains. If not, unregister.
-        const { difficulty } = parseIssueLabels(payload.issue.labels || []);
-        if (!difficulty) {
+        const labelNames = (payload.issue.labels || []).map((label: { name?: string }) => label.name || '');
+        const { difficulty, amount } = parseStakeLabels(labelNames);
+        if (!difficulty || amount === null) {
           await supabase.from('issues').update({ is_open: false }).eq('github_issue_id', payload.issue.id);
           console.log(`[Worker Webhook]: Stake labels removed from Issue #${payload.issue.number}. Marked is_open = false.`);
         }
