@@ -1,7 +1,52 @@
 import { createSupabaseAdmin } from '@pullquest/database';
-import { Issue, Difficulty } from '@pullquest/shared';
+import { Difficulty, Issue, StakableIssue } from '@pullquest/shared';
+import {
+  ISSUE_CACHE_TTL_SECONDS,
+  cacheHashSet,
+  issueCacheKey,
+} from '../redis/cache.js';
 
 const supabase = createSupabaseAdmin();
+
+const ISSUE_LIST_SELECT =
+  '*, repositories(name, full_name), organizations(name, credibility_score)';
+
+export async function cacheIssueMetadata(issue: {
+  id: string;
+  stake_amount: number;
+  difficulty: Difficulty;
+  is_open: boolean;
+  participant_count: number;
+}): Promise<void> {
+  await cacheHashSet(
+    issueCacheKey(issue.id),
+    {
+      stake_amount: String(issue.stake_amount),
+      difficulty: issue.difficulty,
+      is_open: String(issue.is_open),
+      participants: String(issue.participant_count),
+    },
+    ISSUE_CACHE_TTL_SECONDS
+  );
+}
+
+async function countLockedParticipants(issueId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('stakes')
+    .select('id', { count: 'exact', head: true })
+    .eq('issue_id', issueId)
+    .eq('status', 'LOCKED');
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
+function withParticipantCount(
+  issue: StakableIssue,
+  participant_count: number
+): StakableIssue {
+  return { ...issue, participant_count };
+}
 
 export async function registerIssue(data: {
   github_issue_id: number;
@@ -36,13 +81,23 @@ export async function registerIssue(data: {
     .single();
 
   if (error) throw error;
-  return issue as Issue;
+
+  const registered = issue as Issue;
+  await cacheIssueMetadata({
+    id: registered.id,
+    stake_amount: registered.stake_amount,
+    difficulty: registered.difficulty,
+    is_open: registered.is_open,
+    participant_count: 0,
+  });
+
+  return registered;
 }
 
-export async function getIssueById(id: string): Promise<Issue | null> {
+export async function getIssueById(id: string): Promise<StakableIssue | null> {
   const { data, error } = await supabase
     .from('issues')
-    .select('*, repositories(name, full_name)')
+    .select(ISSUE_LIST_SELECT)
     .eq('id', id)
     .single();
 
@@ -50,17 +105,28 @@ export async function getIssueById(id: string): Promise<Issue | null> {
     if (error.code === 'PGRST116') return null;
     throw error;
   }
-  return data as Issue;
+
+  const issue = data as StakableIssue;
+  const participant_count = await countLockedParticipants(id);
+  await cacheIssueMetadata({
+    id: issue.id,
+    stake_amount: issue.stake_amount,
+    difficulty: issue.difficulty,
+    is_open: issue.is_open,
+    participant_count,
+  });
+
+  return withParticipantCount(issue, participant_count);
 }
 
 export async function getStakableIssues(
   filters: { org_id?: string; difficulty?: Difficulty; is_open?: boolean },
   page = 1,
   limit = 10
-): Promise<{ data: Issue[]; total: number }> {
+): Promise<{ data: StakableIssue[]; total: number }> {
   let query = supabase
     .from('issues')
-    .select('*, repositories(name, full_name)', { count: 'exact' });
+    .select(ISSUE_LIST_SELECT, { count: 'exact' });
 
   if (filters.org_id) {
     query = query.eq('org_id', filters.org_id);
@@ -80,14 +146,37 @@ export async function getStakableIssues(
     .range(start, end);
 
   if (error) throw error;
+
+  const rows = (data || []) as StakableIssue[];
+  const withCounts = await Promise.all(
+    rows.map(async (issue) =>
+      withParticipantCount(issue, await countLockedParticipants(issue.id))
+    )
+  );
+
   return {
-    data: (data || []) as Issue[],
+    data: withCounts,
     total: count || 0,
   };
 }
+
 export async function closeIssue(githubIssueId: number): Promise<void> {
-  await supabase
+  const { data, error } = await supabase
     .from('issues')
     .update({ is_open: false })
-    .eq('github_issue_id', githubIssueId);
+    .eq('github_issue_id', githubIssueId)
+    .select('id, stake_amount, difficulty')
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return;
+
+  const participant_count = await countLockedParticipants(data.id);
+  await cacheIssueMetadata({
+    id: data.id,
+    stake_amount: data.stake_amount,
+    difficulty: data.difficulty as Difficulty,
+    is_open: false,
+    participant_count,
+  });
 }

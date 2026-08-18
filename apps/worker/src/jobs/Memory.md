@@ -1,7 +1,7 @@
 # apps/worker/src/jobs — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-17
 
 ## Preferences
 - Each processor file handles one queue; import queue name from `../queues/` not hardcoded strings
@@ -21,6 +21,8 @@
 - `aiSummary` never assigns XP — Gemini output is summary only
 - `installation.created` includes granted repos (max 50); worker must upsert them. `installation_repositories.added` only fires when the repo set changes later, not on every install.
 - Register stakable issues on `issues.opened` / `reopened` / `labeled`, not labeled-only — creating an issue with labels already applied never sends a later labeled event for those labels.
+- Both difficulty and exact `Stake-N` are required; do not default amount to the band minimum. `unlabeled` closes the issue if either is gone.
+- Label parsing lives in `@pullquest/shared` `parseStakeLabels` — `Stake-Easy` is difficulty, `Stake-50` is amount.
 
 ## Decisions
 - Processors are thin orchestrators; business logic lives in `@pullquest/api` services (imported as workspace dep)

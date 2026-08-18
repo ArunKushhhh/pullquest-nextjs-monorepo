@@ -24,10 +24,11 @@
 │    Small testable chunks, workspace imports first   │
 │    Patterns from Memory.md. Explicit error handling │
 ├─────────────────────────────────────────────────────┤
-│ 3. VERIFY                                           │
+│ 3. VERIFY (loop engineering)                        │
+│    Start docker + pnpm dev, open the UI in browser  │
+│    Exercise the path; fix DB/code until it works    │
 │    pnpm test → pnpm build                           │
-│    /verify skill for end-to-end behavior            │
-│    Web changes → gstack /qa (browser QA)            │
+│    Web changes → gstack /qa or gstack browse        │
 ├─────────────────────────────────────────────────────┤
 │ 4. REVIEW                                           │
 │    /code-review on diff (correctness)               │

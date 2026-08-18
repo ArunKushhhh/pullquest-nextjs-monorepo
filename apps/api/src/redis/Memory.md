@@ -1,7 +1,7 @@
 # apps/api/src/redis — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-17
 
 ## Preferences
 - Split by concern: `cache.ts` for generic TTL cache, `leaderboard.ts` for sorted set operations
@@ -17,6 +17,8 @@
 - Leaderboard sorted sets are persistent (no TTL) — cleared only on Act reset
 - `ZADD` with `XX` flag updates only existing members; use without flag for new entries
 - Session cache supplements Supabase JWT — do not store sensitive data (no tokens, no keys)
+- `cache:issue:{id}` is a Redis hash (`stake_amount`, `difficulty`, `is_open`, `participants`), not a JSON string — use `cacheHashSet`
+- Cache writes fail open (log + continue) so staking still works if Redis is down
 
 ## Decisions
 - BullMQ uses its own Redis connection from `config/queues.ts` — separate from cache/leaderboard client

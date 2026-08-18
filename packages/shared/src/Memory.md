@@ -1,7 +1,7 @@
 # packages/shared/src — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-17
 
 ## Preferences
 - Zero runtime dependencies — no Supabase, Redis, Express, or BullMQ imports ever
@@ -13,6 +13,7 @@
 - Tier thresholds: Initiator 0–100, Commiter 100–500, Contributor 500–1500, Merge Master 1500–3000, Architect 3000–5000, Open Source Legend 5000+
 - Coin base amounts per tier used for Act reset earned_coins restoration
 - All enums in `enums/`; all TypeScript interfaces in `types/`; all pure logic in `utils/`
+- Stake gating: `parseStakeLabels` + `evaluateStakeAttempt` — API/worker/tests must not re-implement label or exact-amount rules
 
 ## Gotchas
 - `@pullquest/shared` is consumed by api, worker, AND web — never add server-only deps
