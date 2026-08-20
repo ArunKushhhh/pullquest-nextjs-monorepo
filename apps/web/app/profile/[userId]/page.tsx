@@ -157,12 +157,16 @@ export default function ProfilePage() {
                         </div>
                         
                         <span className={`self-start sm:self-center text-[9px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-                          pr.status === 'MERGED' ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/20' :
-                          pr.status === 'REJECTED' ? 'bg-rose-500/5 text-rose-400 border-rose-500/20' :
-                          pr.status === 'CLOSED' ? 'bg-zinc-800 text-zinc-400 border-zinc-700' :
+                          pr.outcome === 'MERGED' || pr.outcome === 'MULTIPLE_ACCEPTED' ? 'bg-emerald-500/5 text-emerald-400 border-emerald-500/20' :
+                          pr.outcome === 'REJECTED' ? 'bg-rose-500/5 text-rose-400 border-rose-500/20' :
+                          pr.outcome === 'CLOSED_WITHOUT_MERGE' ? 'bg-zinc-800 text-zinc-400 border-zinc-700' :
+                          pr.outcome === 'UNREVIEWED' ? 'bg-sky-500/5 text-sky-400 border-sky-500/20' :
+                          pr.status === 'AWAITING_EVALUATION' ? 'bg-amber-500/5 text-amber-400 border-amber-500/20' :
                           'bg-indigo-500/5 text-indigo-400 border-indigo-500/20'
                         }`}>
-                          {pr.status}
+                          {pr.outcome
+                            ? pr.outcome.replaceAll('_', ' ')
+                            : pr.status.replaceAll('_', ' ')}
                         </span>
                       </div>
 

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { webhookProcessingQueue } from '../config/queues.js';
+import { handlePullRequestGitHubEvent } from './pr.service.js';
 
 export function verifyGitHubSignature(
   payload: string,
@@ -19,6 +20,15 @@ export function verifyGitHubSignature(
 }
 
 export async function handleGitHubEvent(event: string, payload: any): Promise<void> {
+  // PR lifecycle is owned by PRService so outcomes, coins, and metrics stay in one path (PRD §2.3 / §7.4).
+  if (event === 'pull_request' || event === 'pull_request_review') {
+    console.log(
+      `[GitHub Webhook]: Handling "${event}" (action: ${payload?.action}) via PRService`
+    );
+    await handlePullRequestGitHubEvent(event, payload);
+    return;
+  }
+
   console.log(`[GitHub Webhook]: Queueing event "${event}" (action: ${payload?.action}) to background queue`);
   await webhookProcessingQueue.add('process-github-event', { event, payload });
 }

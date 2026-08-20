@@ -1,7 +1,7 @@
 # apps/api/src/services — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-17
+> Last updated: 2026-08-18
 
 ## Preferences
 - Stateless functions, not classes — no singleton state in services
@@ -17,11 +17,16 @@
 - Coin tracking: `earned_coins` and `purchased_coins` stored separately; purchased never reset on Act reset
 - Stake rules live in `@pullquest/shared` `evaluateStakeAttempt` — exact Stake-X, open issue, band, uniqueness, treasury gate
 - After a successful stake: lock coins, insert `stakes`, `HSET cache:issue:{id}` (2m), `HSET session:{userId}` active_stakes (30m)
+- PR outcomes live in `@pullquest/shared` `classifyPROutcome` + `computePRFinancials` — API `PRService` applies them; worker does not
+- GitHub `pull_request` / `pull_request_review` are handled in-process by `handlePullRequestGitHubEvent`, not the webhook queue
 
 ## Gotchas
 - `EvaluationService` must block merge path — XP cannot be calculated without evaluation score
 - `PRService` rejection trigger: PR closed unmerged AND latest review is `changes_requested`
-- `PRService` closed-without-merge trigger: PR closed unmerged AND no `changes_requested` review exists
+- `PRService` closed-without-merge trigger: PR closed unmerged AND a review exists that is not `changes_requested`
+- `PRService` unreviewed trigger: PR closed unmerged AND `last_review_status` is null — full refund, no 30% compensation
+- Linking a PR requires `#N` in title or body AND a LOCKED stake on that issue for the author
+- Multiple Accepted splits `MERGE_BONUS` with `floor(bonus / acceptedCount)`; XP split is still §2.4
 - Trust multiplier uses highest applicable bracket (not additive) — PRD §2.4
 - `ActService` reset runs in BullMQ job, not HTTP request — no response timeout concern
 - `LeaderboardService` must publish Supabase Realtime event after every ZADD
