@@ -44,7 +44,7 @@ export async function getUserPRHistory(userId: string, page = 1, limit = 10) {
   const { data: prs, error, count } = await supabase
     .from('pull_requests')
     .select(
-      '*, repositories(name, full_name), evaluations(total_score, comments, code_quality_score, complexity_score, test_coverage_score, documentation_score, overall_score)',
+      '*, repositories(name, full_name), evaluations(total_score, comments, code_quality_score, complexity_score, test_coverage_score, documentation_score, overall_score), xp_logs(xp_awarded, trust_multiplier, evaluation_score, xp_cap)',
       { count: 'exact' }
     )
     .eq('user_id', userId)
@@ -53,8 +53,20 @@ export async function getUserPRHistory(userId: string, page = 1, limit = 10) {
 
   if (error) throw error;
 
+  const unwrap = <T,>(value: T | T[] | null | undefined): T | null => {
+    if (Array.isArray(value)) return value[0] ?? null;
+    return value ?? null;
+  };
+
+  const normalized = (prs || []).map((pr) => ({
+    ...pr,
+    repositories: unwrap(pr.repositories),
+    evaluations: unwrap(pr.evaluations),
+    xp_logs: unwrap(pr.xp_logs),
+  }));
+
   return {
-    data: prs || [],
+    data: normalized,
     total: count || 0,
     page,
     limit,

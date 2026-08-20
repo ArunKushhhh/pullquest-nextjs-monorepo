@@ -1,11 +1,11 @@
 # apps/web/app — Context
 
 ## Purpose
-App Router route tree: landing, login, auth callback, dashboard, issues feed, leaderboard, profile. Root layout + globals.css (Tailwind v4).
+App Router route tree: landing, login, auth callback, dashboard, issues feed, leaderboard, profile, maintainer evaluation.
 
 ## Key Files
 - `auth/`
-- `dashboard/`
+- `evaluate/`
 - `favicon.ico`
 - `globals.css`
 - `issues/`

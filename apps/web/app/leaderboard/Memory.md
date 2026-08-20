@@ -1,7 +1,7 @@
 # apps/web/app/leaderboard — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-20
 
 ## Preferences
 - Use `dataviz` skill before building any chart or ranking visualization
@@ -20,3 +20,4 @@
 
 ## Decisions
 - Leaderboard page is partial — static layout exists, realtime + pagination incomplete
+- Live 2026-08-20: first Act 1 score (ArunKushhhh, 40 XP) appears at #1 after evaluation; Redis keys `leaderboard:global:{actId}` and `leaderboard:org:{orgId}:{actId}`

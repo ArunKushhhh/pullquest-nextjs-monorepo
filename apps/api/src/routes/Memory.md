@@ -1,7 +1,7 @@
 # apps/api/src/routes — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-20
 
 ## Preferences
 - Route files are thin HTTP adapters only — no business logic
@@ -18,6 +18,8 @@
 - `/api/webhooks/github` and `/api/webhooks/stripe` must use raw body parser (not JSON) for signature verification
 - `/api/orgs/:orgId/treasury` restricted to org admins — check role in route middleware
 - Metrics route (`/api/metrics`) must be excluded from auth middleware
+- `GET /api/prs/pending-evaluation` must be registered before `GET /api/prs/:id` or Express treats `pending-evaluation` as an id
+- `POST /api/prs/:id/evaluate` returns `{ evaluation, xpLog }`; `EvaluationError` maps to 400/403/404/409
 
 ## Decisions
 - No controllers directory currently — routes call services directly; add controllers if handlers exceed ~30 lines

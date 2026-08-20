@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculateXP, getTierForXP, calculateActResetXP } from '../src/utils/index.js';
+import {
+  averageEvaluationScore,
+  calculateXP,
+  getTierForXP,
+  calculateActResetXP,
+  getTrustMultiplier,
+} from '../src/utils/index.js';
 import { Difficulty, TierName } from '../src/enums/index.js';
 
 describe('XP Math & Tier Progression', () => {
@@ -22,6 +28,43 @@ describe('XP Math & Tier Progression', () => {
     it('should bound XP output to a minimum of 0', () => {
       const xp = calculateXP(Difficulty.EASY, -1, 1.0);
       expect(xp).toBe(0);
+    });
+
+    it('should award Hard cap × 0.5× trust at a perfect evaluation', () => {
+      const xp = calculateXP(Difficulty.HARD, 5, 0.5);
+      expect(xp).toBe(50);
+    });
+  });
+
+  describe('getTrustMultiplier', () => {
+    it('defaults small orgs (0–4 members, no stars) to 0.5×', () => {
+      expect(getTrustMultiplier(0, 0)).toBe(0.5);
+      expect(getTrustMultiplier(4, 0)).toBe(0.5);
+    });
+
+    it('applies 0.8× for 5–19 members without star boosts', () => {
+      expect(getTrustMultiplier(5, 0)).toBe(0.8);
+      expect(getTrustMultiplier(19, 0)).toBe(0.8);
+    });
+
+    it('uses the highest applicable star bracket over member count', () => {
+      expect(getTrustMultiplier(1, 100)).toBe(1.0);
+      expect(getTrustMultiplier(1, 1000)).toBe(1.5);
+      expect(getTrustMultiplier(19, 1000)).toBe(1.5);
+    });
+  });
+
+  describe('averageEvaluationScore', () => {
+    it('averages the five questionnaire scores onto a 0–5 scale', () => {
+      expect(
+        averageEvaluationScore({
+          code_quality_score: 5,
+          complexity_score: 4,
+          test_coverage_score: 5,
+          documentation_score: 4,
+          overall_score: 5,
+        })
+      ).toBe(4.6);
     });
   });
 

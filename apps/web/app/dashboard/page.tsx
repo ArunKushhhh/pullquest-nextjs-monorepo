@@ -46,6 +46,14 @@ function DashboardContent() {
     account_type: string;
     repositories?: Array<{ id: string; name: string; full_name: string; is_private: boolean }>;
   }>>([]);
+  const [pendingEvals, setPendingEvals] = useState<Array<{
+    id: string;
+    title: string;
+    github_pr_number: number;
+    url?: string;
+    issues?: { title?: string; github_issue_number?: number; difficulty?: string } | null;
+    repositories?: { full_name?: string } | null;
+  }>>([]);
   
   const [loading, setLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
@@ -53,11 +61,12 @@ function DashboardContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, stakesRes, historyRes, installRes] = await Promise.all([
+      const [profileRes, stakesRes, historyRes, installRes, pendingRes] = await Promise.all([
         apiFetch('/api/auth/me'),
         apiFetch('/api/stakes/mine'),
         apiFetch('/api/coins/purchase-history'),
         apiFetch('/api/installations/status'),
+        apiFetch('/api/prs/pending-evaluation'),
       ]);
 
       if (profileRes.ok) setProfile(await profileRes.json());
@@ -66,6 +75,10 @@ function DashboardContent() {
       if (installRes.ok) {
         const body = await installRes.json();
         setInstallations(body.installations ?? []);
+      }
+      if (pendingRes.ok) {
+        const body = await pendingRes.json();
+        setPendingEvals(Array.isArray(body) ? body : []);
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -275,6 +288,38 @@ function DashboardContent() {
                 {activeTab === 'overview' && (
                   <div className="flex flex-col gap-6 animate-fadeIn">
                     
+                    {pendingEvals.length > 0 && (
+                      <div className="p-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex flex-col gap-4">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-5 w-5 text-amber-400" />
+                          <span className="text-sm font-bold text-white">PRs awaiting evaluation</span>
+                        </div>
+                        <p className="text-xs text-zinc-400">
+                          XP is not awarded until you submit the structured questionnaire. Formula: Cap × (Eval / 5) × Trust Multiplier.
+                        </p>
+                        <ul className="flex flex-col gap-2">
+                          {pendingEvals.map((pr) => (
+                            <li key={pr.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-zinc-800 bg-zinc-950/60">
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-white truncate">
+                                  PR #{pr.github_pr_number} — {pr.title}
+                                </p>
+                                <p className="text-[11px] text-zinc-500 truncate">
+                                  {pr.repositories?.full_name}
+                                  {pr.issues?.difficulty ? ` · ${pr.issues.difficulty}` : ''}
+                                </p>
+                              </div>
+                              <Link
+                                href={`/evaluate/${pr.id}`}
+                                className="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold"
+                              >
+                                Evaluate
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )} 
                     {/* XP Progress Card */}
                     <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/40 flex flex-col">
                       <div className="flex items-center justify-between mb-4">

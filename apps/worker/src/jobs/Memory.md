@@ -1,7 +1,7 @@
 # apps/worker/src/jobs — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-18
+> Last updated: 2026-08-20
 
 ## Preferences
 - Each processor file handles one queue; import queue name from `../queues/` not hardcoded strings
@@ -13,7 +13,7 @@
 - `coinMinting.processor.ts` — BullMQ cron `0 0 1 * *`: credit 100 earned_coins to all active users
 - `treasuryAudit.processor.ts` — after each treasury transaction: check debt ceiling −2000, disable staking if breached
 - `webhook.processor.ts` — parse GitHub event, dispatch to domain services. `pull_request` / `pull_request_review` are handled by API `PRService`, not this processor.
-- `xp.processor.ts` — compute XP formula, ZADD leaderboard sorted sets, emit Supabase Realtime event
+- `xp.processor.ts` — skip only; XP + leaderboard writes happen in API `XPService` on evaluate
 
 ## Gotchas
 - Queue names in `../queues/` must exactly match `apps/api/src/config/queues.ts` — mismatch silently drops jobs
