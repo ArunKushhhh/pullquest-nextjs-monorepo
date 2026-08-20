@@ -11,6 +11,15 @@ export async function updateLeaderboardScore(
   await redis.zadd(key, score, userId);
 }
 
+/** Add `delta` to an org leaderboard so it tracks XP earned in that org, not global XP. */
+export async function incrementLeaderboardScore(
+  key: string,
+  userId: string,
+  delta: number
+): Promise<void> {
+  await redis.zincrby(key, delta, userId);
+}
+
 /**
  * Retrieve a paginated page of user IDs and their scores.
  * Returns an array of objects: { userId: string, score: number }

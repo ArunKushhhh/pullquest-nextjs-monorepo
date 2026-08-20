@@ -1,7 +1,7 @@
 # packages/shared/src — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-18
+> Last updated: 2026-08-20
 
 ## Preferences
 - Zero runtime dependencies — no Supabase, Redis, Express, or BullMQ imports ever
@@ -21,6 +21,8 @@
 - Tier name "Commiter" (one t) — matches PRD spelling exactly; do not correct to "Committer"
 - XP is never negative — clamp to 0 minimum in formula util
 - Unreviewed (no review) is not Closed-without-merge (reviewed, not `changes_requested`) — compensation only on the latter
+- `getTrustMultiplier`: member brackets match members only. Star brackets must require `minStars > 0` — a `minStars: 0` row previously matched every repo via `|| starsMatch` and pinned trust at 0.8×. Default with 0 stars / 0 members is 0.5×
+- Evaluation Score is the mean of the five slider scores (`averageEvaluationScore`), not a weighted mix
 
 ## Decisions
 - Barrel export from `src/index.ts` — all consumers import from `@pullquest/shared` not deep paths

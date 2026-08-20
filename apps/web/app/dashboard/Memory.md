@@ -1,7 +1,7 @@
 # apps/web/app/dashboard — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-13
+> Last updated: 2026-08-20
 
 ## Preferences
 - Server component by default; `'use client'` only for interactive widgets (stake button, realtime updates)
@@ -21,4 +21,5 @@
 ## Decisions
 - Dashboard is partial — Connect Repositories CTA wired; realtime + org sidebar pending
 - GET /api/installations/status now embeds `repositories`; dashboard lists `full_name` under the GitHub account
+- Overview shows PRs awaiting evaluation (`GET /api/prs/pending-evaluation`) with an Evaluate link to `/evaluate/{prId}`
 - Worker must persist `payload.repositories` on `installation.created` — that event is not selectable in App settings (GitHub sends it by default)

@@ -1,7 +1,7 @@
 # apps/api/src/services — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-18
+> Last updated: 2026-08-20
 
 ## Preferences
 - Stateless functions, not classes — no singleton state in services
@@ -32,6 +32,11 @@
 - `LeaderboardService` must publish Supabase Realtime event after every ZADD
 - `POST /api/issues/:id/stake` amount must equal `issues.stake_amount` — difficulty-band-only amounts are rejected
 - `StakeError` maps to 400/403/404/409; unique `(user_id, issue_id)` is a 409 even on races
+- Only `installations.installed_by` may evaluate a PR — not every org member
+- `ensureActiveAct()` boots Act 1 (45 days) on first XP award if `acts` is empty; `xp_logs.act_id` is required
+- Award XP in `XPService` during evaluate; skip `xp.processor` so queued jobs cannot double-pay
+- Skip `xp_logs` insert when a row already exists for `pr_id` (unique index may not be applied on remote yet)
+- Org board uses `ZINCRBY` by awarded XP; global board `ZADD`s `users.global_xp`
 
 ## Decisions
 - Flat functions over classes for simplicity; revisit if service complexity grows

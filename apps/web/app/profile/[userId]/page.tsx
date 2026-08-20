@@ -202,6 +202,15 @@ export default function ProfilePage() {
                               "{pr.evaluations.comments}"
                             </div>
                           )}
+
+                          {pr.xp_logs && (
+                            <p className="text-xs font-bold text-indigo-300">
+                              +{pr.xp_logs.xp_awarded} XP
+                              <span className="text-zinc-500 font-medium">
+                                {' '}· cap {pr.xp_logs.xp_cap} · eval {pr.xp_logs.evaluation_score} · trust {pr.xp_logs.trust_multiplier}×
+                              </span>
+                            </p>
+                          )}
                         </div>
                       )}
 

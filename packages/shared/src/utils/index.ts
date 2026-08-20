@@ -12,6 +12,7 @@ import {
   BASE_TIER_COINS,
   MERGE_BONUS,
 } from '../constants/index.js';
+import type { EvaluationRequest } from '../types/index.js';
 
 // ─── XP Calculation ────────────────────────────────────────────────
 
@@ -31,6 +32,28 @@ export function calculateXP(
   const normalized = evaluationScore / MAX_EVALUATION_SCORE;
   const xp = cap * normalized * trustMultiplier;
   return Math.max(0, Math.floor(xp));
+}
+
+/**
+ * Mean of the five structured questionnaire scores, rounded to 2 decimals.
+ */
+export function averageEvaluationScore(
+  scores: Pick<
+    EvaluationRequest,
+    | 'code_quality_score'
+    | 'complexity_score'
+    | 'test_coverage_score'
+    | 'documentation_score'
+    | 'overall_score'
+  >
+): number {
+  const total =
+    scores.code_quality_score +
+    scores.complexity_score +
+    scores.test_coverage_score +
+    scores.documentation_score +
+    scores.overall_score;
+  return Math.round((total / 5) * 100) / 100;
 }
 
 // ─── Tier Resolution ───────────────────────────────────────────────
@@ -73,15 +96,16 @@ export function getTrustMultiplier(
   memberCount: number,
   starCount: number
 ): number {
-  let highest = 0.5; // default minimum
+  let highest = 0.5; // default minimum (1–5 members / unknown repo)
 
   for (const bracket of TRUST_MULTIPLIER_BRACKETS) {
-    const membersMatch =
-      memberCount >= bracket.minMembers &&
-      memberCount < bracket.maxMembers;
-    const starsMatch = starCount >= bracket.minStars;
-
-    if (membersMatch || starsMatch) {
+    // minStars === 0 marks a member-count bracket. Star brackets must not
+    // match every repo just because 0 stars is >= 0.
+    if (bracket.minStars === 0) {
+      if (memberCount >= bracket.minMembers && memberCount < bracket.maxMembers) {
+        highest = Math.max(highest, bracket.multiplier);
+      }
+    } else if (starCount >= bracket.minStars) {
       highest = Math.max(highest, bracket.multiplier);
     }
   }

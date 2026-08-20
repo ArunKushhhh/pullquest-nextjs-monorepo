@@ -31,7 +31,7 @@ function issueJoin(pr: PullRequest & { issues?: IssueJoin | IssueJoin[] | null }
 export async function getPRById(id: string): Promise<PullRequest | null> {
   const { data, error } = await supabase
     .from('pull_requests')
-    .select('*, issues(org_id, difficulty)')
+    .select('*, issues(org_id, difficulty), repositories(full_name, star_count, member_count, org_id)')
     .eq('id', id)
     .single();
 

@@ -35,3 +35,20 @@ export async function createNewAct(actNumber: number): Promise<Act> {
   if (error) throw error;
   return data as Act;
 }
+
+/** XP logs require an Act FK. Boot Act 1 if none is running. */
+export async function ensureActiveAct(): Promise<Act> {
+  const current = await getCurrentAct();
+  if (current) return current;
+
+  const { data: latest, error } = await supabase
+    .from('acts')
+    .select('act_number')
+    .order('act_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  const nextNumber = latest ? latest.act_number + 1 : 1;
+  return createNewAct(nextNumber);
+}

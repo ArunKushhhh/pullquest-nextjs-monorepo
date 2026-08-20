@@ -5,40 +5,58 @@ import {
   getTrustMultiplier,
   Difficulty,
   XPLog,
+  XP_CAPS,
 } from '@pullquest/shared';
-import { updateLeaderboardScore } from '../redis/leaderboard.js';
+import {
+  incrementLeaderboardScore,
+  updateLeaderboardScore,
+} from '../redis/leaderboard.js';
 import { xpAwardedTotal, leaderboardUpdateDuration } from '../metrics/definitions.js';
 import { getPRById } from './pr.service.js';
+import { ensureActiveAct } from './act.service.js';
 
 const supabase = createSupabaseAdmin();
+
+export async function getXpLogForPR(prId: string): Promise<XPLog | null> {
+  const { data, error } = await supabase
+    .from('xp_logs')
+    .select('*')
+    .eq('pr_id', prId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as XPLog) ?? null;
+}
 
 export async function calculateAndAwardXP(
   prId: string,
   evaluationScore: number
 ): Promise<XPLog> {
-  // Load PR with issue and repository details
+  const existing = await getXpLogForPR(prId);
+  if (existing) return existing;
+
   const pr = await getPRById(prId);
   if (!pr) throw new Error('PR not found');
 
-  const { data: issue } = await supabase
+  const { data: issue, error: issueErr } = await supabase
     .from('issues')
-    .select('*, repositories(github_repo_id, star_count, member_count, org_id)')
+    .select('*, repositories(id, github_repo_id, star_count, member_count, org_id)')
     .eq('id', pr.issue_id)
     .single();
 
-  if (!issue) throw new Error('Issue not found');
+  if (issueErr || !issue) throw issueErr || new Error('Issue not found');
 
-  const repo = (issue as any).repositories;
+  const repo = Array.isArray((issue as { repositories?: unknown }).repositories)
+    ? (issue as { repositories: Array<Record<string, unknown>> }).repositories[0]
+    : (issue as { repositories: Record<string, unknown> | null }).repositories;
   if (!repo) throw new Error('Repository details not found');
 
-  // 1. Calculate Trust Multiplier
-  const trustMultiplier = getTrustMultiplier(repo.member_count || 0, repo.star_count || 0);
+  const memberCount = Number(repo.member_count || 0);
+  const starCount = Number(repo.star_count || 0);
+  const trustMultiplier = getTrustMultiplier(memberCount, starCount);
   const difficulty = issue.difficulty as Difficulty;
-
-  // 2. Calculate Final XP
   const xpAwarded = calculateXP(difficulty, evaluationScore, trustMultiplier);
 
-  // 3. Fetch Contributor User Profile
   const { data: user, error: userErr } = await supabase
     .from('users')
     .select('*')
@@ -51,7 +69,6 @@ export async function calculateAndAwardXP(
   const globalXpAfter = user.global_xp + xpAwarded;
   const tierAfter = getTierForXP(globalXpAfter);
 
-  // 4. Update User Profile in DB
   const { error: userUpdateErr } = await supabase
     .from('users')
     .update({
@@ -62,18 +79,16 @@ export async function calculateAndAwardXP(
 
   if (userUpdateErr) throw userUpdateErr;
 
-  // Get current seasonal Act
-  const { data: activeAct } = await supabase
-    .from('acts')
-    .select('id')
-    .eq('status', 'ACTIVE')
-    .order('act_number', { ascending: false })
-    .limit(1)
-    .single();
+  if (typeof repo.id === 'string') {
+    await supabase
+      .from('repositories')
+      .update({ trust_multiplier: trustMultiplier })
+      .eq('id', repo.id);
+  }
 
-  const actId = activeAct ? activeAct.id : '00000000-0000-0000-0000-000000000000';
+  const activeAct = await ensureActiveAct();
+  const actId = activeAct.id;
 
-  // 5. Create XP Log entry
   const { data: logEntry, error: logErr } = await supabase
     .from('xp_logs')
     .insert({
@@ -81,9 +96,9 @@ export async function calculateAndAwardXP(
       pr_id: pr.id,
       issue_id: pr.issue_id,
       act_id: actId,
-      org_id: repo.org_id || null,
+      org_id: (repo.org_id as string | null) || null,
       difficulty,
-      xp_cap: difficulty === 'EASY' ? 40 : difficulty === 'MEDIUM' ? 70 : 100,
+      xp_cap: XP_CAPS[difficulty],
       evaluation_score: evaluationScore,
       trust_multiplier: trustMultiplier,
       xp_awarded: xpAwarded,
@@ -94,17 +109,22 @@ export async function calculateAndAwardXP(
     .select('*')
     .single();
 
-  if (logErr) throw logErr;
+  if (logErr) {
+    if (logErr.code === '23505') {
+      const raced = await getXpLogForPR(prId);
+      if (raced) return raced;
+    }
+    throw logErr;
+  }
 
-  // 6. Update Redis Leaderboards (Global and Org-specific)
   const endLeaderboardTimer = leaderboardUpdateDuration.startTimer();
   try {
     await updateLeaderboardScore(`leaderboard:global:${actId}`, pr.user_id, globalXpAfter);
     if (repo.org_id) {
-      await updateLeaderboardScore(
+      await incrementLeaderboardScore(
         `leaderboard:org:${repo.org_id}:${actId}`,
         pr.user_id,
-        globalXpAfter
+        xpAwarded
       );
     }
   } catch (redisErr) {
@@ -113,11 +133,11 @@ export async function calculateAndAwardXP(
     endLeaderboardTimer();
   }
 
-  // 7. Emit Prometheus metrics
   xpAwardedTotal.inc(xpAwarded);
 
   return logEntry as XPLog;
 }
+
 export async function getXpLogs(userId: string): Promise<XPLog[]> {
   const { data, error } = await supabase
     .from('xp_logs')
