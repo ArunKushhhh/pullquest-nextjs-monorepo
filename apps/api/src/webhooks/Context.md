@@ -8,7 +8,7 @@ Third-party event handlers: GitHub App webhooks (PR/issue events) and Stripe pay
 - `stripe.webhook.ts`
 
 ## Relationships
-Signature verification mandatory before processing; heavy work offloaded to worker via queues.
+Signature verification mandatory before processing; issue/install events go to the worker queue; PR open/review/close is applied by PRService in the API process.
 
 ## PRD Reference
 §3.2 GitHub App, §7.4 PR Lifecycle, §7.6 Coin Economy

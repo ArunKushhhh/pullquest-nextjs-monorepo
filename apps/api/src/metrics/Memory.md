@@ -15,7 +15,7 @@
 
 ## Gotchas
 - `definitions.ts` must be imported before metrics middleware — counters must exist before increment
-- `pullquest_pr_outcomes_total` uses label `type` with values: merged/rejected/closed/unreviewed/multiple
+- `pullquest_pr_outcomes_total` uses label `outcome` with values: MERGED / REJECTED / CLOSED_WITHOUT_MERGE / UNREVIEWED / MULTIPLE_ACCEPTED
 - Treasury balance gauge updated after every treasury transaction (not on scrape)
 
 ## Decisions

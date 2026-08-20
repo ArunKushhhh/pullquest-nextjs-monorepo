@@ -1,7 +1,7 @@
 # packages/shared/src — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-17
+> Last updated: 2026-08-18
 
 ## Preferences
 - Zero runtime dependencies — no Supabase, Redis, Express, or BullMQ imports ever
@@ -14,11 +14,13 @@
 - Coin base amounts per tier used for Act reset earned_coins restoration
 - All enums in `enums/`; all TypeScript interfaces in `types/`; all pure logic in `utils/`
 - Stake gating: `parseStakeLabels` + `evaluateStakeAttempt` — API/worker/tests must not re-implement label or exact-amount rules
+- PR lifecycle: `parseIssueNumbers` + `classifyPROutcome` + `computePRFinancials` — five outcomes, no I/O
 
 ## Gotchas
 - `@pullquest/shared` is consumed by api, worker, AND web — never add server-only deps
 - Tier name "Commiter" (one t) — matches PRD spelling exactly; do not correct to "Committer"
 - XP is never negative — clamp to 0 minimum in formula util
+- Unreviewed (no review) is not Closed-without-merge (reviewed, not `changes_requested`) — compensation only on the latter
 
 ## Decisions
 - Barrel export from `src/index.ts` — all consumers import from `@pullquest/shared` not deep paths

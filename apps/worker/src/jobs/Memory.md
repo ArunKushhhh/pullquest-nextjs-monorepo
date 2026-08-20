@@ -1,7 +1,7 @@
 # apps/worker/src/jobs — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-17
+> Last updated: 2026-08-18
 
 ## Preferences
 - Each processor file handles one queue; import queue name from `../queues/` not hardcoded strings
@@ -12,7 +12,7 @@
 - `aiSummary.processor.ts` — Gemini API call, post comment via GitHub App as `pullquestai` bot
 - `coinMinting.processor.ts` — BullMQ cron `0 0 1 * *`: credit 100 earned_coins to all active users
 - `treasuryAudit.processor.ts` — after each treasury transaction: check debt ceiling −2000, disable staking if breached
-- `webhook.processor.ts` — parse GitHub event, dispatch to domain services
+- `webhook.processor.ts` — parse GitHub event, dispatch to domain services. `pull_request` / `pull_request_review` are handled by API `PRService`, not this processor.
 - `xp.processor.ts` — compute XP formula, ZADD leaderboard sorted sets, emit Supabase Realtime event
 
 ## Gotchas
@@ -23,6 +23,7 @@
 - Register stakable issues on `issues.opened` / `reopened` / `labeled`, not labeled-only — creating an issue with labels already applied never sends a later labeled event for those labels.
 - Both difficulty and exact `Stake-N` are required; do not default amount to the band minimum. `unlabeled` closes the issue if either is gone.
 - Label parsing lives in `@pullquest/shared` `parseStakeLabels` — `Stake-Easy` is difficulty, `Stake-50` is amount.
+- Do not re-implement PR refund/deduction/bonus here — that double-pays if a stale job and the API both run.
 
 ## Decisions
-- Processors are thin orchestrators; business logic lives in `@pullquest/api` services (imported as workspace dep)
+- Processors are thin orchestrators; PR lifecycle business logic lives in `apps/api/src/services/pr.service.ts`

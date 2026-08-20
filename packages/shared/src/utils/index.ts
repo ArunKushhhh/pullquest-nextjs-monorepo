@@ -1,4 +1,4 @@
-import { Difficulty, TierName } from '../enums/index.js';
+import { Difficulty, PROutcome, StakeStatus, TierName } from '../enums/index.js';
 import {
   TIER_THRESHOLDS,
   TIER_ORDER,
@@ -10,6 +10,7 @@ import {
   CLOSED_COMPENSATION_RATE,
   INITIATOR_XP_RESET_FACTOR,
   BASE_TIER_COINS,
+  MERGE_BONUS,
 } from '../constants/index.js';
 
 // ─── XP Calculation ────────────────────────────────────────────────
@@ -260,4 +261,129 @@ export function calculateRejectionDeduction(stakeAmount: number): number {
  */
 export function calculateClosedCompensation(stakeAmount: number): number {
   return Math.floor(stakeAmount * CLOSED_COMPENSATION_RATE);
+}
+
+// ─── PR Lifecycle (PRD §2.3) ───────────────────────────────────────
+
+const ISSUE_REF_RE = /#(\d+)/g;
+
+/**
+ * Issue numbers referenced in a PR title/body (`Fixes #12`, `#15`).
+ * Order is first-mention; callers try each until a staked issue matches.
+ */
+export function parseIssueNumbers(text: string | null | undefined): number[] {
+  if (!text) return [];
+  const seen = new Set<number>();
+  const numbers: number[] = [];
+  for (const match of text.matchAll(ISSUE_REF_RE)) {
+    const n = Number.parseInt(match[1], 10);
+    if (!Number.isFinite(n) || seen.has(n)) continue;
+    seen.add(n);
+    numbers.push(n);
+  }
+  return numbers;
+}
+
+export interface ClassifyPROutcomeInput {
+  merged: boolean;
+  /** GitHub review.state: approved | changes_requested | commented | dismissed */
+  lastReviewStatus: string | null | undefined;
+  /** Merged PRs on this issue including the one being resolved. */
+  acceptedCount: number;
+}
+
+/**
+ * Map a GitHub close/merge event to one of the five PRD outcomes.
+ *
+ * Unreviewed = closed unmerged with no review on file.
+ * Closed without merge = closed unmerged after a non-rejection review.
+ * Rejected = closed unmerged and the latest review is `changes_requested`.
+ */
+export function classifyPROutcome(input: ClassifyPROutcomeInput): PROutcome {
+  if (input.merged) {
+    return input.acceptedCount > 1
+      ? PROutcome.MULTIPLE_ACCEPTED
+      : PROutcome.MERGED;
+  }
+  const status = (input.lastReviewStatus ?? '').trim().toLowerCase();
+  if (status === 'changes_requested') return PROutcome.REJECTED;
+  if (!status) return PROutcome.UNREVIEWED;
+  return PROutcome.CLOSED_WITHOUT_MERGE;
+}
+
+export interface ComputePRFinancialsInput {
+  outcome: PROutcome;
+  stakeAmount: number;
+  difficulty: Difficulty;
+  acceptedCount: number;
+}
+
+export interface PRFinancials {
+  stakeStatus: StakeStatus;
+  /** Full locked stake is always released when a linked stake exists. */
+  releaseLocked: boolean;
+  refundToUser: number;
+  deductionToTreasury: number;
+  compensationFromTreasury: number;
+  mergeBonus: number;
+}
+
+/**
+ * Coin movements for a resolved PR. XP split for Multiple Accepted is §2.4.
+ */
+export function computePRFinancials(input: ComputePRFinancialsInput): PRFinancials {
+  const { outcome, stakeAmount, difficulty, acceptedCount } = input;
+  const fullBonus = MERGE_BONUS[difficulty] ?? 0;
+  const splitBonus =
+    acceptedCount > 0 ? Math.floor(fullBonus / acceptedCount) : 0;
+
+  switch (outcome) {
+    case PROutcome.MERGED:
+      return {
+        stakeStatus: StakeStatus.RETURNED,
+        releaseLocked: true,
+        refundToUser: stakeAmount,
+        deductionToTreasury: 0,
+        compensationFromTreasury: 0,
+        mergeBonus: fullBonus,
+      };
+    case PROutcome.MULTIPLE_ACCEPTED:
+      return {
+        stakeStatus: StakeStatus.RETURNED,
+        releaseLocked: true,
+        refundToUser: stakeAmount,
+        deductionToTreasury: 0,
+        compensationFromTreasury: 0,
+        mergeBonus: splitBonus,
+      };
+    case PROutcome.REJECTED: {
+      const deduction = calculateRejectionDeduction(stakeAmount);
+      return {
+        stakeStatus: StakeStatus.DEDUCTED,
+        releaseLocked: true,
+        refundToUser: stakeAmount - deduction,
+        deductionToTreasury: deduction,
+        compensationFromTreasury: 0,
+        mergeBonus: 0,
+      };
+    }
+    case PROutcome.CLOSED_WITHOUT_MERGE:
+      return {
+        stakeStatus: StakeStatus.REFUNDED,
+        releaseLocked: true,
+        refundToUser: stakeAmount,
+        deductionToTreasury: 0,
+        compensationFromTreasury: calculateClosedCompensation(stakeAmount),
+        mergeBonus: 0,
+      };
+    case PROutcome.UNREVIEWED:
+      return {
+        stakeStatus: StakeStatus.REFUNDED,
+        releaseLocked: true,
+        refundToUser: stakeAmount,
+        deductionToTreasury: 0,
+        compensationFromTreasury: 0,
+        mergeBonus: 0,
+      };
+  }
 }
