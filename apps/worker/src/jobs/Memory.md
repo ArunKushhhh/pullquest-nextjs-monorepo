@@ -10,7 +10,7 @@
 ## Patterns
 - `actReset.processor.ts` — daily 00:00 no-op until `end_date`; `force: true` runs immediately. Archives Redis first, then UNRANKED + XP compress + earned coins to BASE_TIER_COINS; purchased untouched. Refuses if LOCKED stakes exist.
 - `aiSummary.processor.ts` — Gemini API call, post comment via GitHub App as `pullquestai` bot
-- `coinMinting.processor.ts` — BullMQ cron `0 0 1 * *`: credit 100 earned_coins to all active users
+- `coinMinting.processor.ts` — BullMQ cron `0 0 1 * *`: credit 100 earned_coins; skip if a MONTHLY_MINT already exists this UTC month
 - `treasuryAudit.processor.ts` — after each treasury transaction: check debt ceiling −2000, disable staking if breached
 - `webhook.processor.ts` — parse GitHub event, dispatch to domain services. `pull_request` / `pull_request_review` are handled by API `PRService`, not this processor.
 - `xp.processor.ts` — skip only; XP + leaderboard writes happen in API `XPService` on evaluate

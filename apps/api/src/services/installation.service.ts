@@ -9,7 +9,31 @@ export async function getInstallationStatus(userId: string) {
     .eq('installed_by', userId);
 
   if (error) throw error;
-  return data;
+
+  const orgAccountIds = (data ?? [])
+    .filter((row) => row.account_type === 'Organization')
+    .map((row) => row.account_id);
+
+  if (orgAccountIds.length === 0) return data ?? [];
+
+  const { data: orgs, error: orgErr } = await supabase
+    .from('organizations')
+    .select('id, name, display_name, github_org_id, avatar_url')
+    .in('github_org_id', orgAccountIds);
+
+  if (orgErr) throw orgErr;
+
+  const orgByGithubId = new Map(
+    (orgs ?? []).map((org) => [Number(org.github_org_id), org])
+  );
+
+  return (data ?? []).map((inst) => ({
+    ...inst,
+    organization:
+      inst.account_type === 'Organization'
+        ? orgByGithubId.get(Number(inst.account_id)) ?? null
+        : null,
+  }));
 }
 
 export async function handleInstallationCreated(payload: any) {

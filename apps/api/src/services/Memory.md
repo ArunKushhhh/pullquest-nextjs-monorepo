@@ -12,9 +12,12 @@
 ## Patterns
 - One service file per domain entity: act, auth, coin, credibility, evaluation, installation, issue, leaderboard, org, pr, stake, treasury, user, webhook, xp
 - XP formula lives in `@pullquest/shared/utils` — services call it, never re-implement
-- Leaderboard writes: `ZADD leaderboard:global:act:{actId}` and `leaderboard:org:{orgId}:act:{actId}`
+- Leaderboard writes: `ZADD leaderboard:global:{actId}` and `leaderboard:org:{orgId}:{actId}` (no `act:` infix)
 - Treasury debt ceiling check after every debit — disable staking if balance < −2000
+- `GET /api/orgs/:orgId/treasury` is installer/org-admin only; public org dashboard must not include raw balance
+- After credit/debit, enqueue `treasury-audit` `check-debt-ceiling` and set `pullquest_treasury_balance`
 - Coin tracking: `earned_coins` and `purchased_coins` stored separately; purchased never reset on Act reset
+- Bundles live in `@pullquest/shared` `COIN_BUNDLES`; `POST /api/coins/create-checkout-session` 409s if that pack was already bought this Act
 - Stake rules live in `@pullquest/shared` `evaluateStakeAttempt` — exact Stake-X, open issue, band, uniqueness, treasury gate
 - After a successful stake: lock coins, insert `stakes`, `HSET cache:issue:{id}` (2m), `HSET session:{userId}` active_stakes (30m)
 - PR outcomes live in `@pullquest/shared` `classifyPROutcome` + `computePRFinancials` — API `PRService` applies them; worker does not
@@ -29,7 +32,8 @@
 - Multiple Accepted splits `MERGE_BONUS` with `floor(bonus / acceptedCount)`; XP split is still §2.4
 - Trust multiplier uses highest applicable bracket (not additive) — PRD §2.4
 - `ActService` reset runs in BullMQ job, not HTTP request — no response timeout concern
-- `LeaderboardService` must publish Supabase Realtime event after every ZADD
+- `LeaderboardService` hides Unranked users, `ZREM`s ghost Redis members, hydrates from DB if the sorted set was evicted, and returns `me` standing when the request is authenticated
+- Realtime leaderboard events are a separate Frontend feature — do not block Tiers on them
 - `POST /api/issues/:id/stake` amount must equal `issues.stake_amount` — difficulty-band-only amounts are rejected
 - `StakeError` maps to 400/403/404/409; unique `(user_id, issue_id)` is a 409 even on races
 - Only `installations.installed_by` may evaluate a PR — not every org member

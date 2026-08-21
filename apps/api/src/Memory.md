@@ -1,7 +1,7 @@
 # apps/api/src/ — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-07-21
+> Last updated: 2026-08-21
 
 ## Preferences
 - Barrel exports from `index.ts` for clean imports
@@ -26,3 +26,4 @@
 - Flat service files (not classes) for simplicity — may refactor to classes if complexity grows
 - Separate webhooks directory to isolate third-party event handling from REST API
 - Redis leaderboard uses sorted sets for O(log N) rank queries
+- Visible leaderboard reads cache for `LEADERBOARD_CACHE_TTL_SECONDS` (default 15)

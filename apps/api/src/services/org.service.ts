@@ -50,13 +50,6 @@ export async function getOrgDashboard(orgId: string) {
   const org = await getOrgById(orgId);
   if (!org) throw new Error('Organization not found');
 
-  // Load Treasury
-  const { data: treasury } = await supabase
-    .from('treasuries')
-    .select('*')
-    .eq('org_id', orgId)
-    .single();
-
   // Count open issues
   const { count: openIssuesCount } = await supabase
     .from('issues')
@@ -74,7 +67,6 @@ export async function getOrgDashboard(orgId: string) {
 
   return {
     organization: org,
-    treasury: treasury || null,
     stats: {
       openIssuesCount: openIssuesCount || 0,
       starCount,

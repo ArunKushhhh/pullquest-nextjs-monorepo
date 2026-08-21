@@ -1,7 +1,7 @@
 # apps/api/src/webhooks — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-18
+> Last updated: 2026-08-21
 
 ## Preferences
 - Webhook handlers return 202 immediately; enqueue BullMQ job for issue/install events
@@ -16,6 +16,7 @@
 ## Gotchas
 - Raw body required for signature verification — register raw body parser before JSON parser for webhook routes
 - GitHub sends duplicate events on retry; handlers must be idempotent (check if event already processed)
+- Stripe `checkout.session.completed` credits via `purchaseCoins(session.id, bundleId)`; skip 409 already-bought-this-Act and already-credited session ids
 - `installation` event creates org record + starts trial; `installation_repositories` syncs repo list
 
 ## Decisions

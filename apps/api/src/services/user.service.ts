@@ -1,5 +1,5 @@
 import { createSupabaseAdmin } from '@pullquest/database';
-import { getUserRank } from '../redis/leaderboard.js';
+import { getUserRank, globalLeaderboardKey } from '../redis/leaderboard.js';
 
 const supabase = createSupabaseAdmin();
 
@@ -27,7 +27,7 @@ export async function getUserProfile(userId: string) {
 
   let rank: number | null = null;
   if (activeAct) {
-    rank = await getUserRank(`leaderboard:global:${activeAct.id}`, userId);
+    rank = await getUserRank(globalLeaderboardKey(activeAct.id), userId);
   }
 
   return {

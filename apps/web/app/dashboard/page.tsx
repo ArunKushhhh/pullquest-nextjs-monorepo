@@ -5,10 +5,22 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
 import { apiFetch } from '../../lib/api';
-import { Coins, Trophy, Zap, Clock, ShieldCheck, CheckCircle2, AlertTriangle, CreditCard, Loader2, ArrowRight, GitBranch } from 'lucide-react';
+import { Coins, Trophy, Zap, Clock, ShieldCheck, CheckCircle2, AlertTriangle, CreditCard, Loader2, ArrowRight, GitBranch, Landmark } from 'lucide-react';
 
 const GITHUB_APP_SLUG = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'pullquest-nextjs';
 const GITHUB_INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`;
+
+type TreasuryView = {
+  orgId: string;
+  orgName: string;
+  balance: number;
+  totalCredits: number;
+  totalDebits: number;
+  debtCeiling: number;
+  warningThreshold: number;
+  isStakingDisabled: boolean;
+  health: 'healthy' | 'warning' | 'breached';
+};
 
 type CoinBundleView = {
   id: string;
@@ -54,8 +66,10 @@ function DashboardContent() {
     id: string;
     account_login: string;
     account_type: string;
+    organization?: { id: string; name: string; display_name: string | null } | null;
     repositories?: Array<{ id: string; name: string; full_name: string; is_private: boolean }>;
   }>>([]);
+  const [treasuries, setTreasuries] = useState<TreasuryView[]>([]);
   const [pendingEvals, setPendingEvals] = useState<Array<{
     id: string;
     title: string;
@@ -64,6 +78,12 @@ function DashboardContent() {
     issues?: { title?: string; github_issue_number?: number; difficulty?: string } | null;
     repositories?: { full_name?: string } | null;
   }>>([]);
+  const [standing, setStanding] = useState<{
+    rank: number | null;
+    xp: number;
+    tier: string;
+    visible: boolean;
+  } | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
@@ -71,7 +91,7 @@ function DashboardContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, stakesRes, historyRes, installRes, pendingRes, actRes, bundlesRes] = await Promise.all([
+      const [profileRes, stakesRes, historyRes, installRes, pendingRes, actRes, bundlesRes, boardRes] = await Promise.all([
         apiFetch('/api/auth/me'),
         apiFetch('/api/stakes/mine'),
         apiFetch('/api/coins/purchase-history'),
@@ -79,6 +99,7 @@ function DashboardContent() {
         apiFetch('/api/prs/pending-evaluation'),
         apiFetch('/api/acts/current'),
         apiFetch('/api/coins/bundles'),
+        apiFetch('/api/leaderboard/global?page=1&limit=1'),
       ]);
 
       if (profileRes.ok) setProfile(await profileRes.json());
@@ -86,7 +107,23 @@ function DashboardContent() {
       if (historyRes.ok) setHistory(await historyRes.json());
       if (installRes.ok) {
         const body = await installRes.json();
-        setInstallations(body.installations ?? []);
+        const nextInstalls = body.installations ?? [];
+        setInstallations(nextInstalls);
+        const orgIds = nextInstalls
+          .map((inst: { organization?: { id?: string } | null }) => inst.organization?.id)
+          .filter((id: string | undefined): id is string => Boolean(id));
+        if (orgIds.length > 0) {
+          const views = await Promise.all(
+            orgIds.map(async (orgId: string) => {
+              const res = await apiFetch(`/api/orgs/${orgId}/treasury`);
+              if (!res.ok) return null;
+              return res.json() as Promise<TreasuryView>;
+            })
+          );
+          setTreasuries(views.filter((view): view is TreasuryView => view !== null));
+        } else {
+          setTreasuries([]);
+        }
       }
       if (pendingRes.ok) {
         const body = await pendingRes.json();
@@ -96,6 +133,10 @@ function DashboardContent() {
       if (bundlesRes.ok) {
         const body = await bundlesRes.json();
         setBundles(Array.isArray(body.bundles) ? body.bundles : []);
+      }
+      if (boardRes.ok) {
+        const body = await boardRes.json();
+        setStanding(body.me ?? null);
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -212,7 +253,7 @@ function DashboardContent() {
                 </span>
 
                 {/* Score indicators */}
-                <div className="grid grid-cols-2 gap-4 w-full mt-6 pt-6 border-t border-zinc-850">
+                <div className="grid grid-cols-2 gap-4 w-full mt-6 pt-6 border-t border-zinc-800">
                   <div className="flex flex-col">
                     <span className="text-[10px] text-zinc-500 font-bold uppercase">Total XP</span>
                     <span className="text-lg font-black text-white mt-0.5">{profile?.global_xp}</span>
@@ -222,6 +263,14 @@ function DashboardContent() {
                     <span className="text-lg font-black text-amber-500 mt-0.5">{profile ? profile.earned_coins + profile.purchased_coins : 0}</span>
                   </div>
                 </div>
+                <Link
+                  href="/leaderboard"
+                  className="mt-4 text-xs text-zinc-400 hover:text-white"
+                >
+                  {standing?.visible
+                    ? `Global rank #${standing.rank} this Act`
+                    : 'Unranked until first merged PR this Act'}
+                </Link>
               </div>
 
               <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 backdrop-blur-xl flex flex-col gap-3">
@@ -271,6 +320,39 @@ function DashboardContent() {
                   <ArrowRight className="h-3.5 w-3.5" />
                 </a>
               </div>
+
+              {treasuries.length > 0 && (
+                <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-white font-bold text-sm">
+                    <Landmark className="h-4 w-4 text-indigo-400" />
+                    <span>Org Treasury</span>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
+                    Internal — not shown on public rankings
+                  </p>
+                  {treasuries.map((treasury) => (
+                    <div key={treasury.orgId} className="flex flex-col gap-1 border-t border-zinc-800 pt-3 first:border-0 first:pt-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-zinc-200 truncate">{treasury.orgName}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500">
+                          {treasury.health}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-lg font-black text-white">{treasury.balance} PC</span>
+                        <span className="text-[10px] text-zinc-500">
+                          Ceiling {treasury.debtCeiling}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500">
+                        {treasury.isStakingDisabled
+                          ? 'Staking disabled — debt ceiling reached'
+                          : 'Staking enabled'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Staking constraints detail */}
               <div className="p-5 rounded-2xl border border-zinc-800 bg-zinc-950/30 flex flex-col gap-4 text-xs text-zinc-400 leading-relaxed">

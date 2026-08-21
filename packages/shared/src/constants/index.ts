@@ -31,6 +31,12 @@ export const TIER_ORDER: Exclude<TierName, TierName.UNRANKED>[] = [
   TierName.OPEN_SOURCE_LEGEND,
 ];
 
+/**
+ * TTL for enriched leaderboard page cache (PRD §2.6). Override with
+ * `LEADERBOARD_CACHE_TTL_SECONDS` on the API.
+ */
+export const LEADERBOARD_CACHE_TTL_SECONDS = 15;
+
 // ─── XP Caps ───────────────────────────────────────────────────────
 /**
  * Maximum XP awardable per difficulty before multipliers.
@@ -134,6 +140,9 @@ export const CLOSED_COMPENSATION_RATE = 0.3;
 
 /** Org treasury cannot go below this amount. Staking disabled beyond. */
 export const TREASURY_DEBT_CEILING = -2000;
+
+/** Grafana warning threshold approaching the debt ceiling (PRD §8.5). */
+export const TREASURY_DEBT_WARNING = -1500;
 
 // ─── Seasonal ──────────────────────────────────────────────────────
 /** Duration of one Act in days. */

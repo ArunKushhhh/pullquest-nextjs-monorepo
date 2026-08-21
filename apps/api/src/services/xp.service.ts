@@ -9,7 +9,10 @@ import {
 } from '@pullquest/shared';
 import {
   incrementLeaderboardScore,
+  invalidateLeaderboardCaches,
+  orgLeaderboardKey,
   updateLeaderboardScore,
+  globalLeaderboardKey,
 } from '../redis/leaderboard.js';
 import { xpAwardedTotal, leaderboardUpdateDuration } from '../metrics/definitions.js';
 import { getPRById } from './pr.service.js';
@@ -120,14 +123,15 @@ export async function calculateAndAwardXP(
 
   const endLeaderboardTimer = leaderboardUpdateDuration.startTimer();
   try {
-    await updateLeaderboardScore(`leaderboard:global:${actId}`, pr.user_id, globalXpAfter);
+    await updateLeaderboardScore(globalLeaderboardKey(actId), pr.user_id, globalXpAfter);
     if (repo.org_id) {
       await incrementLeaderboardScore(
-        `leaderboard:org:${repo.org_id}:${actId}`,
+        orgLeaderboardKey(repo.org_id as string, actId),
         pr.user_id,
         xpAwarded
       );
     }
+    await invalidateLeaderboardCaches(actId, (repo.org_id as string | null) || null);
   } catch (redisErr) {
     console.error('[XP Service]: Redis leaderboard update failed:', redisErr);
   } finally {

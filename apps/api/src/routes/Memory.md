@@ -21,6 +21,7 @@
 - `GET /api/prs/pending-evaluation` must be registered before `GET /api/prs/:id` or Express treats `pending-evaluation` as an id
 - `POST /api/prs/:id/evaluate` returns `{ evaluation, xpLog }`; `EvaluationError` maps to 400/403/404/409
 - `POST /api/acts/reset` is development / platform-admin only and returns 202 `{ queued, jobId }`
+- `GET /api/coins/bundles` requires auth; `POST /api/coins/create-checkout-session` maps `CoinError` 409 for a pack already bought this Act
 
 ## Decisions
 - No controllers directory currently — routes call services directly; add controllers if handlers exceed ~30 lines
