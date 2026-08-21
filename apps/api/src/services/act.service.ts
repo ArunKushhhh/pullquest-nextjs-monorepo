@@ -1,5 +1,11 @@
 import { createSupabaseAdmin } from '@pullquest/database';
-import { Act } from '@pullquest/shared';
+import {
+  Act,
+  ActCurrentView,
+  ACT_DURATION_DAYS,
+  actDaysRemaining,
+} from '@pullquest/shared';
+import { actManagementQueue } from '../config/queues.js';
 
 const supabase = createSupabaseAdmin();
 
@@ -16,10 +22,18 @@ export async function getCurrentAct(): Promise<Act | null> {
   return data[0] as Act;
 }
 
+export function toActCurrentView(act: Act): ActCurrentView {
+  return {
+    ...act,
+    days_remaining: actDaysRemaining(act.end_date),
+    duration_days: ACT_DURATION_DAYS,
+  };
+}
+
 export async function createNewAct(actNumber: number): Promise<Act> {
   const startDate = new Date();
   const endDate = new Date();
-  endDate.setDate(startDate.getDate() + 45); // 45 days duration
+  endDate.setDate(startDate.getDate() + ACT_DURATION_DAYS);
 
   const { data, error } = await supabase
     .from('acts')
@@ -51,4 +65,13 @@ export async function ensureActiveAct(): Promise<Act> {
   if (error) throw error;
   const nextNumber = latest ? latest.act_number + 1 : 1;
   return createNewAct(nextNumber);
+}
+
+export async function enqueueActReset(force: boolean): Promise<string | undefined> {
+  const job = await actManagementQueue.add(
+    'act-reset',
+    { force },
+    { removeOnComplete: 20, removeOnFail: 50 }
+  );
+  return job.id;
 }

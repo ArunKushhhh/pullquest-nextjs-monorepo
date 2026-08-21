@@ -68,12 +68,16 @@ export async function calculateAndAwardXP(
   const tierBefore = user.current_tier;
   const globalXpAfter = user.global_xp + xpAwarded;
   const tierAfter = getTierForXP(globalXpAfter);
+  const activeAct = await ensureActiveAct();
+  const actId = activeAct.id;
 
   const { error: userUpdateErr } = await supabase
     .from('users')
     .update({
       global_xp: globalXpAfter,
       current_tier: tierAfter,
+      has_merged_pr_this_act: true,
+      current_act_id: actId,
     })
     .eq('id', pr.user_id);
 
@@ -85,9 +89,6 @@ export async function calculateAndAwardXP(
       .update({ trust_multiplier: trustMultiplier })
       .eq('id', repo.id);
   }
-
-  const activeAct = await ensureActiveAct();
-  const actId = activeAct.id;
 
   const { data: logEntry, error: logErr } = await supabase
     .from('xp_logs')

@@ -6,7 +6,7 @@ initSentry();
 
 import { Worker } from 'bullmq';
 import { connection } from './config/redis.js';
-import { QUEUES, coinMintingQueue } from './queues/index.js';
+import { QUEUES, coinMintingQueue, actManagementQueue } from './queues/index.js';
 
 // Import Job Processors
 import processWebhook from './jobs/webhook.processor.js';
@@ -72,6 +72,16 @@ async function setupCronJobs() {
       }
     );
     console.log('[Worker]: Monthly coin mint cron job scheduled successfully.');
+
+    await actManagementQueue.add(
+      'act-reset',
+      { force: false },
+      {
+        repeat: { pattern: '0 0 * * *' },
+        jobId: 'act-reset-daily-check',
+      }
+    );
+    console.log('[Worker]: Daily Act-reset check scheduled successfully.');
   } catch (err) {
     console.error('[Worker]: Error scheduling cron jobs:', err);
   }
