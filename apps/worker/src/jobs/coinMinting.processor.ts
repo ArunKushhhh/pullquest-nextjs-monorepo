@@ -19,9 +19,24 @@ export default async function processCoinMinting(job: Job): Promise<void> {
   }
 
   const amount = COIN_AMOUNTS.MONTHLY;
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const monthStartIso = monthStart.toISOString();
 
+  let credited = 0;
   for (const user of users) {
     try {
+      const { data: alreadyMinted, error: mintErr } = await supabase
+        .from('coin_transactions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', CoinTransactionType.MONTHLY_MINT)
+        .gte('created_at', monthStartIso)
+        .limit(1);
+
+      if (mintErr) throw mintErr;
+      if (alreadyMinted && alreadyMinted.length > 0) continue;
       const newEarned = user.earned_coins + amount;
 
       // Update user earned coins
@@ -40,11 +55,12 @@ export default async function processCoinMinting(job: Job): Promise<void> {
         locked_balance_after: user.locked_coins,
         description: 'Monthly active user coin mint distribution',
       });
+      credited += 1;
     } catch (err) {
       console.error(`[Worker Coin Minting]: Failed to credit user ${user.id}:`, err);
     }
   }
 
-  console.log(`[Worker Coin Minting]: Successfully distributed monthly coins to ${users.length} users.`);
+  console.log(`[Worker Coin Minting]: Credited ${credited} of ${users.length} users.`);
   await job.updateProgress(100);
 }

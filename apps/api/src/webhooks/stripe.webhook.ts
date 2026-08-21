@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { stripe } from '../config/stripe.js';
 import { config } from '../config/env.js';
-import { purchaseCoins } from '../services/coin.service.js';
+import { CoinError, purchaseCoins } from '../services/coin.service.js';
 import Stripe from 'stripe';
 
 const router = Router();
@@ -39,8 +39,16 @@ router.post('/', async (req, res) => {
 
       if (userId && coinsToAddStr) {
         const coinsToAdd = parseInt(coinsToAddStr, 10);
-        await purchaseCoins(userId, coinsToAdd, session.id);
-        console.log(`[Stripe Webhook]: Successfully credited ${coinsToAdd} coins to user ${userId} for session ${session.id} (bundle: ${bundleId})`);
+        try {
+          await purchaseCoins(userId, coinsToAdd, session.id, bundleId);
+          console.log(`[Stripe Webhook]: Successfully credited ${coinsToAdd} coins to user ${userId} for session ${session.id} (bundle: ${bundleId})`);
+        } catch (err) {
+          if (err instanceof CoinError && err.statusCode === 409) {
+            console.log(`[Stripe Webhook]: Skipping duplicate bundle credit for user ${userId} session ${session.id}`);
+          } else {
+            throw err;
+          }
+        }
       } else {
         console.warn('[Stripe Webhook]: Checkout session completed but metadata values (userId/coinsToAdd) are missing:', session.metadata);
       }

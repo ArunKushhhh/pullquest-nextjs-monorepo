@@ -1,20 +1,18 @@
 import { Router } from 'express';
+import { COIN_BUNDLES, isCoinBundleId } from '@pullquest/shared';
 import { authMiddleware } from '../middleware/auth.js';
 import { stripe } from '../config/stripe.js';
-import { getUserBalance } from '../services/coin.service.js';
+import {
+  assertBundlePurchasableThisAct,
+  CoinError,
+  getUserBalance,
+  listCoinBundlesForUser,
+} from '../services/coin.service.js';
 import { createSupabaseAdmin } from '@pullquest/database';
 
 const router = Router();
 const supabase = createSupabaseAdmin();
 
-// Coin bundle definitions
-const COIN_BUNDLES: Record<string, { name: string; amount: number; priceCents: number }> = {
-  coins_100: { name: '100 Coin Bundle', amount: 100, priceCents: 100 },      // $1.00
-  coins_500: { name: '500 Coin Bundle', amount: 500, priceCents: 450 },      // $4.50 (10% discount)
-  coins_1000: { name: '1000 Coin Bundle', amount: 1000, priceCents: 800 },   // $8.00 (20% discount)
-};
-
-// 1. Get user balance
 router.get('/balance', authMiddleware, async (req, res, next) => {
   try {
     const balance = await getUserBalance(req.user!.id);
@@ -24,20 +22,28 @@ router.get('/balance', authMiddleware, async (req, res, next) => {
   }
 });
 
-// 2. Create Stripe checkout session for purchasing coins
+router.get('/bundles', authMiddleware, async (req, res, next) => {
+  try {
+    const bundles = await listCoinBundlesForUser(req.user!.id);
+    res.json({ bundles });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/create-checkout-session', authMiddleware, async (req, res, next) => {
   try {
-    const { bundle_id } = req.body;
+    const bundleId = req.body?.bundle_id;
     const userId = req.user!.id;
 
-    if (!bundle_id || !COIN_BUNDLES[bundle_id]) {
+    if (!bundleId || !isCoinBundleId(bundleId)) {
       res.status(400).json({ error: 'BadRequest', message: 'Invalid or missing bundle_id' });
       return;
     }
 
-    const bundle = COIN_BUNDLES[bundle_id];
+    await assertBundlePurchasableThisAct(userId, bundleId);
+    const bundle = COIN_BUNDLES[bundleId];
 
-    // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -54,22 +60,29 @@ router.post('/create-checkout-session', authMiddleware, async (req, res, next) =
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?checkout=success`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?checkout=cancel`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?checkout=success&tab=purchases`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?checkout=cancel&tab=purchases`,
       metadata: {
         userId,
-        bundleId: bundle_id,
+        bundleId,
         coinsToAdd: bundle.amount.toString(),
       },
     });
 
     res.json({ url: session.url });
   } catch (err) {
+    if (err instanceof CoinError) {
+      res.status(err.statusCode).json({
+        error: err.code,
+        message: err.message,
+        statusCode: err.statusCode,
+      });
+      return;
+    }
     next(err);
   }
 });
 
-// 3. Get purchase transaction history
 router.get('/purchase-history', authMiddleware, async (req, res, next) => {
   try {
     const { data: txs, error } = await supabase
