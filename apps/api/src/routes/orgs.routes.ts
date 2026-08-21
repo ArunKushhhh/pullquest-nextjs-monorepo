@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getOrgDashboard } from '../services/org.service.js';
-import { getTreasuryBalance } from '../services/treasury.service.js';
+import { canViewTreasury, getTreasuryView } from '../services/treasury.service.js';
 
 const router = Router();
 
@@ -16,15 +16,23 @@ router.get('/:orgId/dashboard', async (req, res, next) => {
 
 router.get('/:orgId/treasury', authMiddleware, async (req, res, next) => {
   try {
-    // Basic verification: user role must be ORG_ADMIN or PLATFORM_ADMIN to view treasury
-    const role = req.user!.role;
-    if (role !== 'ORG_ADMIN' && role !== 'PLATFORM_ADMIN') {
-      res.status(403).json({ error: 'Forbidden', message: 'Insufficient access privileges' });
+    const orgId = req.params.orgId;
+    const allowed = await canViewTreasury(req.user!.id, req.user!.role, orgId);
+    if (!allowed) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Treasury balance is internal to organization admins',
+      });
       return;
     }
 
-    const balance = await getTreasuryBalance(req.params.orgId);
-    res.json({ balance });
+    const view = await getTreasuryView(orgId);
+    if (!view) {
+      res.status(404).json({ error: 'NotFound', message: 'Organization not found' });
+      return;
+    }
+
+    res.json(view);
   } catch (err) {
     next(err);
   }
@@ -32,7 +40,6 @@ router.get('/:orgId/treasury', authMiddleware, async (req, res, next) => {
 
 router.post('/:orgId/subscribe', authMiddleware, async (req, res, next) => {
   try {
-    // Placeholder Stripe checkout redirect endpoint
     res.json({
       success: true,
       url: `https://checkout.stripe.com/pay/mock_session_${Date.now()}`,

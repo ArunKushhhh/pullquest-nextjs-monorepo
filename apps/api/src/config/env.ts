@@ -28,6 +28,10 @@ export const config = {
   SUPABASE_ANON_KEY: getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', true, 'placeholder-anon-key'),
   SUPABASE_SERVICE_ROLE_KEY: getEnv('SUPABASE_SERVICE_ROLE_KEY', true, 'placeholder-service-role-key'),
   REDIS_URL: getEnv('REDIS_URL', false, 'redis://localhost:6379'),
+  LEADERBOARD_CACHE_TTL_SECONDS: parseInt(
+    getEnv('LEADERBOARD_CACHE_TTL_SECONDS', false, '15'),
+    10
+  ),
   GITHUB_APP_ID: getEnv('GITHUB_APP_ID', true, '12345'),
   GITHUB_WEBHOOK_SECRET: getEnv('GITHUB_WEBHOOK_SECRET', true, 'placeholder-webhook-secret'),
   STRIPE_SECRET_KEY: getEnv('STRIPE_SECRET_KEY', true, 'sk_test_placeholder'),

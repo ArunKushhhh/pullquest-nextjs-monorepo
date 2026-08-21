@@ -23,7 +23,10 @@
 - Unreviewed (no review) is not Closed-without-merge (reviewed, not `changes_requested`) — compensation only on the latter
 - `getTrustMultiplier`: member brackets match members only. Star brackets must require `minStars > 0` — a `minStars: 0` row previously matched every repo via `|| starsMatch` and pinned trust at 0.8×. Default with 0 stars / 0 members is 0.5×
 - UNRANKED users still compress from `getTierForXP` (`effectiveTierForActReset`)
+- `isVisibleOnLeaderboard`: merged this Act + ranked tier; `current_act_id` null still counts as this Act
 - `actDaysRemaining` is whole days until `end_date`, floored at 0
+- Coin packs are `COIN_BUNDLES`; `inferCoinBundleId` reads `bundle:{id}` from the ledger description, else matches catalog amount
+- Treasury health: `treasuryHealthStatus` / `isTreasuryStakingDisabled`; warning −1500, ceiling −2000
 
 ## Decisions
 - Barrel export from `src/index.ts` — all consumers import from `@pullquest/shared` not deep paths

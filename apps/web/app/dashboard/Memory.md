@@ -23,4 +23,7 @@
 - GET /api/installations/status now embeds `repositories`; dashboard lists `full_name` under the GitHub account
 - Overview shows PRs awaiting evaluation (`GET /api/prs/pending-evaluation`) with an Evaluate link to `/evaluate/{prId}`
 - Overview shows current Act number and days remaining from `GET /api/acts/current`
+- Sidebar links to `/leaderboard` with `me` standing from `GET /api/leaderboard/global` (`Global rank #1 this Act` or Unranked copy)
+- Installed orgs load internal treasury from `GET /api/orgs/:orgId/treasury` (installer-only; raw balance is not public)
+- Coin Store loads `GET /api/coins/bundles` and disables packs already bought this Act
 - Worker must persist `payload.repositories` on `installation.created` — that event is not selectable in App settings (GitHub sends it by default)

@@ -12,6 +12,8 @@ import {
   BASE_TIER_COINS,
   MERGE_BONUS,
   COIN_BUNDLES,
+  TREASURY_DEBT_CEILING,
+  TREASURY_DEBT_WARNING,
   type CoinBundleId,
 } from '../constants/index.js';
 import type { EvaluationRequest } from '../types/index.js';
@@ -59,6 +61,26 @@ export function averageEvaluationScore(
 }
 
 // ─── Tier Resolution ───────────────────────────────────────────────
+
+/**
+ * Public boards hide Unranked users until they merge ≥1 PR in this Act
+ * and their tier is activated (PRD §2.6 / §4.4).
+ * `current_act_id` null is treated as this Act so pre-Act-clock rows still rank.
+ */
+export function isVisibleOnLeaderboard(
+  user: {
+    has_merged_pr_this_act: boolean;
+    current_tier: string;
+    current_act_id: string | null;
+  },
+  actId: string
+): boolean {
+  return (
+    user.has_merged_pr_this_act === true &&
+    user.current_tier !== TierName.UNRANKED &&
+    (user.current_act_id === actId || user.current_act_id === null)
+  );
+}
 
 /**
  * Determine which tier a user belongs to based on their global XP.
@@ -167,6 +189,19 @@ export function effectiveTierForActReset(
 export function actDaysRemaining(endDate: string, now = new Date()): number {
   const ms = new Date(endDate).getTime() - now.getTime();
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+export type TreasuryHealthStatus = 'healthy' | 'warning' | 'breached';
+
+export function treasuryHealthStatus(balance: number): TreasuryHealthStatus {
+  if (balance <= TREASURY_DEBT_CEILING) return 'breached';
+  if (balance <= TREASURY_DEBT_WARNING) return 'warning';
+  return 'healthy';
+}
+
+/** Staking is disabled at or below the −2000 debt ceiling (PRD §2.7). */
+export function isTreasuryStakingDisabled(balance: number): boolean {
+  return balance <= TREASURY_DEBT_CEILING;
 }
 
 export function isCoinBundleId(id: string): id is CoinBundleId {

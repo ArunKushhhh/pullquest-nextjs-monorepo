@@ -1,4 +1,33 @@
 import { redis } from '../config/redis.js';
+import { cacheDelete } from './cache.js';
+
+export function globalLeaderboardKey(actId: string): string {
+  return `leaderboard:global:${actId}`;
+}
+
+export function orgLeaderboardKey(orgId: string, actId: string): string {
+  return `leaderboard:org:${orgId}:${actId}`;
+}
+
+export function visibleLeaderboardCacheKey(
+  scope: 'global' | 'org',
+  actId: string,
+  orgId?: string
+): string {
+  return scope === 'global'
+    ? `cache:leaderboard:visible:global:${actId}`
+    : `cache:leaderboard:visible:org:${orgId}:${actId}`;
+}
+
+export async function invalidateLeaderboardCaches(
+  actId: string,
+  orgId?: string | null
+): Promise<void> {
+  await cacheDelete(visibleLeaderboardCacheKey('global', actId));
+  if (orgId) {
+    await cacheDelete(visibleLeaderboardCacheKey('org', actId, orgId));
+  }
+}
 
 /**
  * Update the user's score in the sorted set.
@@ -72,4 +101,31 @@ export async function getUserScore(
  */
 export async function getLeaderboardSize(key: string): Promise<number> {
   return await redis.zcard(key);
+}
+
+/**
+ * Full descending range. `stop = -1` reads the entire set.
+ */
+export async function getLeaderboardRange(
+  key: string,
+  start = 0,
+  stop = -1
+): Promise<{ userId: string; score: number }[]> {
+  const results = await redis.zrevrange(key, start, stop, 'WITHSCORES');
+  const entries: { userId: string; score: number }[] = [];
+  for (let i = 0; i < results.length; i += 2) {
+    entries.push({
+      userId: results[i],
+      score: Math.floor(parseFloat(results[i + 1])),
+    });
+  }
+  return entries;
+}
+
+export async function removeLeaderboardMembers(
+  key: string,
+  userIds: string[]
+): Promise<void> {
+  if (userIds.length === 0) return;
+  await redis.zrem(key, ...userIds);
 }

@@ -1,7 +1,7 @@
 # apps/api/src/redis — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-20
+> Last updated: 2026-08-21
 
 ## Preferences
 - Split by concern: `cache.ts` for generic TTL cache, `leaderboard.ts` for sorted set operations
@@ -10,6 +10,8 @@
 ## Patterns
 - Leaderboard keys: `leaderboard:global:{actId}` and `leaderboard:org:{orgId}:{actId}` (no `act:` infix)
 - Org board: `incrementLeaderboardScore` (`ZINCRBY` awarded XP). Global: `updateLeaderboardScore` (`ZADD` all-time XP)
+- Visible-board JSON cache: `cache:leaderboard:visible:global:{actId}` / `...:org:{orgId}:{actId}` (15s, `LEADERBOARD_CACHE_TTL_SECONDS`)
+- Empty Redis sorted sets hydrate from `users` (global) or `xp_logs` (org) — `allkeys-lru` evicted the Act 1 global key once
 - Cache keys: `cache:user:{userId}` (5m), `cache:credibility:{orgId}` (15m), `cache:issue:{issueId}` (2m)
 - Session keys: `session:{userId}` (30m) — stores active stakes + current tier beyond JWT
 - Rate limit keys: `ratelimit:{ip}:{window}` — sliding window, 100 req/min default

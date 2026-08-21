@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { DIFFICULTY_STAKE_RANGES, TIER_THRESHOLDS, TRUST_MULTIPLIER_BRACKETS } from '../src/constants/index.js';
+import { DIFFICULTY_STAKE_RANGES, TIER_THRESHOLDS, TREASURY_DEBT_CEILING, TREASURY_DEBT_WARNING, TRUST_MULTIPLIER_BRACKETS } from '../src/constants/index.js';
 import { Difficulty, TierName } from '../src/enums/index.js';
+import { isTreasuryStakingDisabled, treasuryHealthStatus } from '../src/utils/index.js';
 
 describe('Game Rule Configurations', () => {
   it('should verify difficulty stake ranges are valid and logical', () => {
@@ -21,5 +22,15 @@ describe('Game Rule Configurations', () => {
       expect(bracket.multiplier).toBeGreaterThanOrEqual(0.5);
       expect(bracket.multiplier).toBeLessThanOrEqual(2.0);
     }
+  });
+
+  it('uses −2000 as the treasury debt ceiling and −1500 as the warning line', () => {
+    expect(TREASURY_DEBT_CEILING).toBe(-2000);
+    expect(TREASURY_DEBT_WARNING).toBe(-1500);
+    expect(treasuryHealthStatus(0)).toBe('healthy');
+    expect(treasuryHealthStatus(-1500)).toBe('warning');
+    expect(treasuryHealthStatus(-2000)).toBe('breached');
+    expect(isTreasuryStakingDisabled(-1999)).toBe(false);
+    expect(isTreasuryStakingDisabled(-2000)).toBe(true);
   });
 });

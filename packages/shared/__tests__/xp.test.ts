@@ -3,6 +3,7 @@ import {
   averageEvaluationScore,
   calculateXP,
   getTierForXP,
+  isVisibleOnLeaderboard,
   calculateActResetXP,
   getTrustMultiplier,
   effectiveTierForActReset,
@@ -68,6 +69,46 @@ describe('XP Math & Tier Progression', () => {
           overall_score: 5,
         })
       ).toBe(4.6);
+    });
+  });
+
+  describe('isVisibleOnLeaderboard', () => {
+    const actId = 'act-1';
+    const ranked = {
+      has_merged_pr_this_act: true,
+      current_tier: TierName.INITIATOR,
+      current_act_id: actId,
+    };
+
+    it('shows a contributor after their first merged PR this Act', () => {
+      expect(isVisibleOnLeaderboard(ranked, actId)).toBe(true);
+    });
+
+    it('hides Unranked users even if they have leftover XP', () => {
+      expect(
+        isVisibleOnLeaderboard(
+          { ...ranked, current_tier: TierName.UNRANKED },
+          actId
+        )
+      ).toBe(false);
+    });
+
+    it('hides users who have not merged in this Act', () => {
+      expect(
+        isVisibleOnLeaderboard({ ...ranked, has_merged_pr_this_act: false }, actId)
+      ).toBe(false);
+    });
+
+    it('hides users still pointing at a previous Act', () => {
+      expect(
+        isVisibleOnLeaderboard({ ...ranked, current_act_id: 'act-0' }, actId)
+      ).toBe(false);
+    });
+
+    it('treats a missing Act id as the current Act for legacy rows', () => {
+      expect(
+        isVisibleOnLeaderboard({ ...ranked, current_act_id: null }, actId)
+      ).toBe(true);
     });
   });
 
