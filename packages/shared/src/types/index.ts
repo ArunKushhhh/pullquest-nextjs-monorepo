@@ -215,6 +215,11 @@ export interface Act {
   updated_at: string;
 }
 
+export interface ActCurrentView extends Act {
+  days_remaining: number;
+  duration_days: number;
+}
+
 // ─── Leaderboard ───────────────────────────────────────────────────
 
 export interface LeaderboardEntry {

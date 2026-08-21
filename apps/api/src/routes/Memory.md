@@ -1,7 +1,7 @@
 # apps/api/src/routes — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-20
+> Last updated: 2026-08-21
 
 ## Preferences
 - Route files are thin HTTP adapters only — no business logic
@@ -20,6 +20,7 @@
 - Metrics route (`/api/metrics`) must be excluded from auth middleware
 - `GET /api/prs/pending-evaluation` must be registered before `GET /api/prs/:id` or Express treats `pending-evaluation` as an id
 - `POST /api/prs/:id/evaluate` returns `{ evaluation, xpLog }`; `EvaluationError` maps to 400/403/404/409
+- `POST /api/acts/reset` is development / platform-admin only and returns 202 `{ queued, jobId }`
 
 ## Decisions
 - No controllers directory currently — routes call services directly; add controllers if handlers exceed ~30 lines

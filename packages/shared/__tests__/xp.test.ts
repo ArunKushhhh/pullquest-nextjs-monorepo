@@ -5,6 +5,9 @@ import {
   getTierForXP,
   calculateActResetXP,
   getTrustMultiplier,
+  effectiveTierForActReset,
+  actDaysRemaining,
+  getActResetCoinBalance,
 } from '../src/utils/index.js';
 import { Difficulty, TierName } from '../src/enums/index.js';
 
@@ -94,6 +97,33 @@ describe('XP Math & Tier Progression', () => {
       // Midpoint of INITIATOR is (0 + 100) / 2 = 50.
       const resetXp = calculateActResetXP(300, TierName.COMMITER);
       expect(resetXp).toBe(50);
+    });
+
+    it('should reset Contributor XP to the Commiter midpoint', () => {
+      expect(calculateActResetXP(800, TierName.CONTRIBUTOR)).toBe(300);
+    });
+  });
+
+  describe('effectiveTierForActReset', () => {
+    it('keeps a ranked tier as-is', () => {
+      expect(effectiveTierForActReset(TierName.COMMITER, 200)).toBe(TierName.COMMITER);
+    });
+
+    it('maps UNRANKED to the XP-derived ranked tier', () => {
+      expect(effectiveTierForActReset(TierName.UNRANKED, 40)).toBe(TierName.INITIATOR);
+      expect(effectiveTierForActReset(TierName.UNRANKED, 300)).toBe(TierName.COMMITER);
+    });
+  });
+
+  describe('actDaysRemaining', () => {
+    it('returns 0 when the act has ended', () => {
+      expect(actDaysRemaining('2020-01-01T00:00:00.000Z', new Date('2026-08-21'))).toBe(0);
+    });
+  });
+
+  describe('getActResetCoinBalance', () => {
+    it('returns Initiator base coins after an Initiator drop', () => {
+      expect(getActResetCoinBalance(TierName.INITIATOR)).toBe(50);
     });
   });
 });

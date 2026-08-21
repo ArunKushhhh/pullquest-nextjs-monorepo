@@ -1,7 +1,7 @@
 # apps/api/src/services — Memory
 
 > This file is continuously updated as the team learns about the product.
-> Last updated: 2026-08-20
+> Last updated: 2026-08-21
 
 ## Preferences
 - Stateless functions, not classes — no singleton state in services
@@ -34,6 +34,8 @@
 - `StakeError` maps to 400/403/404/409; unique `(user_id, issue_id)` is a 409 even on races
 - Only `installations.installed_by` may evaluate a PR — not every org member
 - `ensureActiveAct()` boots Act 1 (45 days) on first XP award if `acts` is empty; `xp_logs.act_id` is required
+- `GET /api/acts/current` adds `days_remaining` and `duration_days`
+- `POST /api/acts/reset` enqueues `{ force: true }` on `act-management`; development or PLATFORM_ADMIN only
 - Award XP in `XPService` during evaluate; skip `xp.processor` so queued jobs cannot double-pay
 - Skip `xp_logs` insert when a row already exists for `pr_id` (unique index may not be applied on remote yet)
 - Org board uses `ZINCRBY` by awarded XP; global board `ZADD`s `users.global_xp`

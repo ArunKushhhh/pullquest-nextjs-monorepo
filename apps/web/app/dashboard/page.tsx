@@ -40,6 +40,11 @@ function DashboardContent() {
   const [profile, setProfile] = useState<any>(null);
   const [stakes, setStakes] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [currentAct, setCurrentAct] = useState<{
+    act_number: number;
+    days_remaining: number;
+    duration_days: number;
+  } | null>(null);
   const [installations, setInstallations] = useState<Array<{
     id: string;
     account_login: string;
@@ -61,12 +66,13 @@ function DashboardContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, stakesRes, historyRes, installRes, pendingRes] = await Promise.all([
+      const [profileRes, stakesRes, historyRes, installRes, pendingRes, actRes] = await Promise.all([
         apiFetch('/api/auth/me'),
         apiFetch('/api/stakes/mine'),
         apiFetch('/api/coins/purchase-history'),
         apiFetch('/api/installations/status'),
         apiFetch('/api/prs/pending-evaluation'),
+        apiFetch('/api/acts/current'),
       ]);
 
       if (profileRes.ok) setProfile(await profileRes.json());
@@ -80,6 +86,7 @@ function DashboardContent() {
         const body = await pendingRes.json();
         setPendingEvals(Array.isArray(body) ? body : []);
       }
+      if (actRes.ok) setCurrentAct(await actRes.json());
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -287,7 +294,20 @@ function DashboardContent() {
                 {/* 1. Overview Tab */}
                 {activeTab === 'overview' && (
                   <div className="flex flex-col gap-6 animate-fadeIn">
-                    
+
+                    {currentAct && (
+                      <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/40 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-5 w-5 text-indigo-400" />
+                          <span className="text-sm font-bold text-white">
+                            Act {currentAct.act_number}
+                          </span>
+                        </div>
+                        <span className="text-xs text-zinc-400">
+                          {currentAct.days_remaining} of {currentAct.duration_days} days remaining
+                        </span>
+                      </div>
+                    )} 
                     {pendingEvals.length > 0 && (
                       <div className="p-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex flex-col gap-4">
                         <div className="flex items-center gap-2">
@@ -328,7 +348,9 @@ function DashboardContent() {
                           <span className="text-sm font-bold text-white">Tier Progress</span>
                         </div>
                         <span className="text-xs text-zinc-400">
-                          Next Level: <span className="text-white font-semibold">{getTierProgress(profile?.global_xp || 0).next}</span>
+                          {profile?.current_tier === 'UNRANKED'
+                            ? 'Unranked until first merged PR this Act'
+                            : <>Next Level: <span className="text-white font-semibold">{getTierProgress(profile?.global_xp || 0).next}</span></>}
                         </span>
                       </div>
 

@@ -148,6 +148,25 @@ export function getActResetCoinBalance(
   return BASE_TIER_COINS[tier];
 }
 
+/**
+ * UNRANKED users still compress from the tier their XP maps to.
+ */
+export function effectiveTierForActReset(
+  currentTier: TierName,
+  currentXP: number
+): Exclude<TierName, TierName.UNRANKED> {
+  if (currentTier !== TierName.UNRANKED) {
+    return currentTier;
+  }
+  return getTierForXP(currentXP) as Exclude<TierName, TierName.UNRANKED>;
+}
+
+/** Whole days until `endDate`, floored at 0. */
+export function actDaysRemaining(endDate: string, now = new Date()): number {
+  const ms = new Date(endDate).getTime() - now.getTime();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
 // ─── Stake Validation ──────────────────────────────────────────────
 
 export type StakeRejectionCode =
