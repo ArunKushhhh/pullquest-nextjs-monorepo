@@ -1,8 +1,29 @@
 import { createSupabaseAdmin } from '@pullquest/database';
-import { User, CoinTransactionType } from '@pullquest/shared';
+import {
+  User,
+  CoinTransactionType,
+  COIN_BUNDLES,
+  type CoinBundleId,
+  coinBundlePurchaseDescription,
+  inferCoinBundleId,
+  isCoinBundleId,
+} from '@pullquest/shared';
 import { coinsMintedTotal } from '../metrics/definitions.js';
+import { getCurrentAct } from './act.service.js';
 
 const supabase = createSupabaseAdmin();
+
+export class CoinError extends Error {
+  readonly statusCode: number;
+  readonly code: string;
+
+  constructor(code: string, message: string, statusCode: number) {
+    super(message);
+    this.name = 'CoinError';
+    this.code = code;
+    this.statusCode = statusCode;
+  }
+}
 
 const MINT_TYPES: CoinTransactionType[] = [
   CoinTransactionType.SIGNUP_BONUS,
@@ -241,16 +262,97 @@ export async function unlockCoins(
 
   return updatedUser as User;
 }
+
+export async function listPurchasedBundleIdsThisAct(userId: string): Promise<CoinBundleId[]> {
+  const act = await getCurrentAct();
+  if (!act) return [];
+
+  const { data, error } = await supabase
+    .from('coin_transactions')
+    .select('amount, description')
+    .eq('user_id', userId)
+    .eq('type', CoinTransactionType.PURCHASE)
+    .gte('created_at', act.start_date);
+
+  if (error) throw error;
+
+  const ids = new Set<CoinBundleId>();
+  for (const tx of data ?? []) {
+    const bundleId = inferCoinBundleId({
+      amount: tx.amount,
+      description: tx.description,
+    });
+    if (bundleId) ids.add(bundleId);
+  }
+  return [...ids];
+}
+
+export async function assertBundlePurchasableThisAct(
+  userId: string,
+  bundleId: CoinBundleId
+): Promise<void> {
+  const purchased = await listPurchasedBundleIdsThisAct(userId);
+  if (purchased.includes(bundleId)) {
+    throw new CoinError(
+      'BUNDLE_ALREADY_PURCHASED',
+      'This coin bundle can only be purchased once per Act',
+      409
+    );
+  }
+}
+
+export async function listCoinBundlesForUser(userId: string) {
+  const purchased = new Set(await listPurchasedBundleIdsThisAct(userId));
+  return Object.values(COIN_BUNDLES).map((bundle) => ({
+    id: bundle.id,
+    name: bundle.name,
+    amount: bundle.amount,
+    priceCents: bundle.priceCents,
+    description: bundle.description,
+    purchasedThisAct: purchased.has(bundle.id),
+  }));
+}
+
 export async function purchaseCoins(
   userId: string,
   amount: number,
-  referenceId: string
+  referenceId: string,
+  bundleId?: string
 ): Promise<User> {
-  return await creditCoins(
+  const { data: existing, error: existingErr } = await supabase
+    .from('coin_transactions')
+    .select('user_id')
+    .eq('reference_id', referenceId)
+    .eq('type', CoinTransactionType.PURCHASE)
+    .maybeSingle();
+
+  if (existingErr) throw existingErr;
+  if (existing) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (error || !user) throw error || new Error('User not found');
+    return user as User;
+  }
+
+  let catalogId: CoinBundleId | undefined;
+  if (bundleId) {
+    if (!isCoinBundleId(bundleId)) {
+      throw new CoinError('INVALID_BUNDLE', 'Unknown coin bundle', 400);
+    }
+    catalogId = bundleId;
+    await assertBundlePurchasableThisAct(userId, catalogId);
+  }
+
+  return creditCoins(
     userId,
     amount,
     CoinTransactionType.PURCHASE,
     referenceId,
-    'Purchased coin bundle'
+    catalogId
+      ? coinBundlePurchaseDescription(catalogId)
+      : 'Purchased coin bundle'
   );
 }

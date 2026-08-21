@@ -75,6 +75,32 @@ export const COIN_AMOUNTS = {
   MONTHLY: 100,
 } as const;
 
+export const COIN_BUNDLES = {
+  coins_100: {
+    id: 'coins_100',
+    name: 'Initiator Pack',
+    amount: 100,
+    priceCents: 100,
+    description: 'Perfect for quick staking on simple Easy-labeled issues.',
+  },
+  coins_500: {
+    id: 'coins_500',
+    name: 'Questing Pack',
+    amount: 500,
+    priceCents: 450,
+    description: 'Best value for active contributors chasing Medium stakes.',
+  },
+  coins_1000: {
+    id: 'coins_1000',
+    name: 'Legend Pack',
+    amount: 1000,
+    priceCents: 800,
+    description: 'Premium bundle for high-stake Hard-labeled architecture tasks.',
+  },
+} as const;
+
+export type CoinBundleId = keyof typeof COIN_BUNDLES;
+
 /**
  * Bonus coins awarded on PR merge, per difficulty.
  */

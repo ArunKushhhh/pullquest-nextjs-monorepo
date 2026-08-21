@@ -11,6 +11,8 @@ import {
   INITIATOR_XP_RESET_FACTOR,
   BASE_TIER_COINS,
   MERGE_BONUS,
+  COIN_BUNDLES,
+  type CoinBundleId,
 } from '../constants/index.js';
 import type { EvaluationRequest } from '../types/index.js';
 
@@ -165,6 +167,28 @@ export function effectiveTierForActReset(
 export function actDaysRemaining(endDate: string, now = new Date()): number {
   const ms = new Date(endDate).getTime() - now.getTime();
   return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+export function isCoinBundleId(id: string): id is CoinBundleId {
+  return Object.prototype.hasOwnProperty.call(COIN_BUNDLES, id);
+}
+
+export function coinBundlePurchaseDescription(bundleId: CoinBundleId): string {
+  return `Purchased coin bundle:${bundleId}`;
+}
+
+/** Resolve a ledger row back to a catalog bundle (tagged description, else amount). */
+export function inferCoinBundleId(input: {
+  amount: number;
+  description: string | null;
+}): CoinBundleId | null {
+  const tagged = input.description?.match(/bundle:([a-z0-9_]+)/i);
+  if (tagged && isCoinBundleId(tagged[1])) return tagged[1];
+
+  for (const bundle of Object.values(COIN_BUNDLES)) {
+    if (bundle.amount === input.amount) return bundle.id;
+  }
+  return null;
 }
 
 // ─── Stake Validation ──────────────────────────────────────────────

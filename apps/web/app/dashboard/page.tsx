@@ -10,11 +10,14 @@ import { Coins, Trophy, Zap, Clock, ShieldCheck, CheckCircle2, AlertTriangle, Cr
 const GITHUB_APP_SLUG = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || 'pullquest-nextjs';
 const GITHUB_INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`;
 
-const COIN_BUNDLES = [
-  { id: 'coins_100', name: 'Initiator Pack', amount: 100, price: '$1.00', desc: 'Perfect for quick staking on simple Easy-labeled issues.' },
-  { id: 'coins_500', name: 'Questing Pack', amount: 500, price: '$4.50', desc: 'Best value for active contributors chasing Medium stakes.' },
-  { id: 'coins_1000', name: 'Legend Pack', amount: 1000, price: '$8.00', desc: 'Premium bundle for high-stake Hard-labeled architecture tasks.' },
-];
+type CoinBundleView = {
+  id: string;
+  name: string;
+  amount: number;
+  priceCents: number;
+  description: string;
+  purchasedThisAct: boolean;
+};
 
 export default function DashboardPage() {
   return (
@@ -45,6 +48,8 @@ function DashboardContent() {
     days_remaining: number;
     duration_days: number;
   } | null>(null);
+  const [bundles, setBundles] = useState<CoinBundleView[]>([]);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [installations, setInstallations] = useState<Array<{
     id: string;
     account_login: string;
@@ -66,13 +71,14 @@ function DashboardContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, stakesRes, historyRes, installRes, pendingRes, actRes] = await Promise.all([
+      const [profileRes, stakesRes, historyRes, installRes, pendingRes, actRes, bundlesRes] = await Promise.all([
         apiFetch('/api/auth/me'),
         apiFetch('/api/stakes/mine'),
         apiFetch('/api/coins/purchase-history'),
         apiFetch('/api/installations/status'),
         apiFetch('/api/prs/pending-evaluation'),
         apiFetch('/api/acts/current'),
+        apiFetch('/api/coins/bundles'),
       ]);
 
       if (profileRes.ok) setProfile(await profileRes.json());
@@ -87,6 +93,10 @@ function DashboardContent() {
         setPendingEvals(Array.isArray(body) ? body : []);
       }
       if (actRes.ok) setCurrentAct(await actRes.json());
+      if (bundlesRes.ok) {
+        const body = await bundlesRes.json();
+        setBundles(Array.isArray(body.bundles) ? body.bundles : []);
+      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -104,6 +114,7 @@ function DashboardContent() {
 
   const handlePurchase = async (bundleId: string) => {
     setPurchasingId(bundleId);
+    setPurchaseError(null);
     try {
       const res = await apiFetch('/api/coins/create-checkout-session', {
         method: 'POST',
@@ -114,11 +125,16 @@ function DashboardContent() {
         if (data.url) {
           window.location.href = data.url;
         }
+      } else if (res.status === 409) {
+        setPurchaseError('This pack can only be bought once per Act.');
+        await loadData();
       } else {
         console.error('Purchase failed:', await res.text());
+        setPurchaseError('Could not start checkout. Try again.');
       }
     } catch (err) {
       console.error('Purchase error:', err);
+      setPurchaseError('Could not start checkout. Try again.');
     } finally {
       setPurchasingId(null);
     }
@@ -484,16 +500,22 @@ function DashboardContent() {
                 {/* 3. Purchases Store Tab */}
                 {activeTab === 'purchases' && (
                   <div className="flex flex-col gap-8 animate-fadeIn">
-                    
-                    {/* Coin Pack Grid */}
+                    <p className="text-xs text-zinc-500">
+                      Each pack can be purchased once during this Act. Purchased coins are never reset.
+                    </p>
+                    {purchaseError && (
+                      <div className="flex items-center gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-400 text-sm">
+                        <AlertTriangle className="h-5 w-5 shrink-0" />
+                        <span>{purchaseError}</span>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {COIN_BUNDLES.map((bundle) => (
+                      {bundles.map((bundle) => (
                         <div key={bundle.id} className="p-6 rounded-2xl border border-zinc-800 bg-zinc-950/60 backdrop-blur-xl flex flex-col justify-between hover:border-zinc-700 transition-all">
                           <div className="flex flex-col">
                             <h4 className="text-base font-bold text-white mb-1">{bundle.name}</h4>
                             <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-4">Coin Pack</span>
                             
-                            {/* Coins display */}
                             <div className="flex items-baseline gap-2 mb-4">
                               <Coins className="h-6 w-6 text-amber-500" />
                               <span className="text-3xl font-black text-white">{bundle.amount}</span>
@@ -501,24 +523,26 @@ function DashboardContent() {
                             </div>
 
                             <p className="text-zinc-400 text-xs leading-relaxed mb-6">
-                              {bundle.desc}
+                              {bundle.description}
                             </p>
                           </div>
 
                           <button
                             onClick={() => handlePurchase(bundle.id)}
-                            disabled={purchasingId !== null}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/10 cursor-pointer disabled:opacity-50 transition-all"
+                            disabled={purchasingId !== null || bundle.purchasedThisAct}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white text-xs font-bold rounded-xl cursor-pointer disabled:opacity-50 transition-all"
                           >
                             {purchasingId === bundle.id ? (
                               <>
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 <span>Verifying...</span>
                               </>
+                            ) : bundle.purchasedThisAct ? (
+                              <span>Purchased this Act</span>
                             ) : (
                               <>
                                 <CreditCard className="h-4 w-4" />
-                                <span>Purchase for {bundle.price}</span>
+                                <span>Purchase for ${(bundle.priceCents / 100).toFixed(2)}</span>
                               </>
                             )}
                           </button>
